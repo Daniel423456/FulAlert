@@ -1,0 +1,50 @@
+{
+  "name": "FULALERT - Campus Emergency SOS",
+  "short_name": "FULALERT",
+  "description": "Federal University Emergency Alert, GPS Escort & Responder Dispatch System",
+  "start_url": "/",
+  "id": "/",
+  "display": "standalone",
+  "display_override": ["standalone", "fullscreen", "minimal-ui"],
+  "orientation": "portrait",
+  "background_color": "#070b19",
+  "theme_color": "#0052d4",
+  "categories": ["safety", "emergency", "education", "utilities"],
+  "icons": [
+    {
+      "src": "/logo.png",
+      "sizes": "192x192",
+      "type": "image/png",
+      "purpose": "any"
+    },
+    {
+      "src": "/logo.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "any maskable"
+    }
+  ],
+  "shortcuts": [
+    {
+      "name": "Emergency Panic SOS",
+      "short_name": "SOS Alert",
+      "description": "Trigger instant 3-second campus emergency alert",
+      "url": "/#/student",
+      "icons": [{ "src": "/logo.png", "sizes": "192x192" }]
+    },
+    {
+      "name": "Walk With Me GPS",
+      "short_name": "GPS Escort",
+      "description": "Share live GPS path with trusted friend",
+      "url": "/#/student",
+      "icons": [{ "src": "/logo.png", "sizes": "192x192" }]
+    },
+    {
+      "name": "Campus Directory",
+      "short_name": "Hotlines",
+      "description": "Direct emergency phone numbers",
+      "url": "/#/student",
+      "icons": [{ "src": "/logo.png", "sizes": "192x192" }]
+    }
+  ]
+}
