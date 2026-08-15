@@ -133,7 +133,9 @@ export default function DepartmentLoginPage({
   onLoginSuccess, 
   onBackToHome 
 }) {
-  const dept = DEPARTMENT_CONFIGS[deptKey] || DEPARTMENT_CONFIGS.security;
+  const [selectedDeptKey, setSelectedDeptKey] = useState(deptKey || 'security');
+
+  const dept = DEPARTMENT_CONFIGS[selectedDeptKey] || DEPARTMENT_CONFIGS.security;
   const deptCreds = OFFICIAL_DEPARTMENT_CREDENTIALS[dept.id] || OFFICIAL_DEPARTMENT_CREDENTIALS.security;
   const DeptIcon = dept.icon;
 
@@ -143,6 +145,18 @@ export default function DepartmentLoginPage({
   const [showPassword, setShowPassword] = useState(false);
   const [errorMsg, setErrorMsg] = useState('');
   const [successMsg, setSuccessMsg] = useState('');
+
+  const handleDeptChange = (key) => {
+    setSelectedDeptKey(key);
+    const targetDept = DEPARTMENT_CONFIGS[key];
+    if (targetDept) {
+      setOfficerName(targetDept.defaultOfficer);
+      setBadgeId(targetDept.badgePlaceholder);
+      setPassword('');
+      setErrorMsg('');
+      setSuccessMsg('');
+    }
+  };
 
   const handleSubmit = (e) => {
     e.preventDefault();
@@ -309,7 +323,7 @@ export default function DepartmentLoginPage({
           fontSize: '0.72rem',
           color: 'var(--text-secondary)'
         }}>
-          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '6px' }}>
+          <div style={{ display: 'flex', alignItems: 'center', justify_content: 'space-between', marginBottom: '6px', justifyContent: 'space-between' }}>
             <div style={{ display: 'flex', alignItems: 'center', gap: '6px', color: dept.themeColor, fontWeight: 700 }}>
               <KeyRound size={13} />
               <span>Official Department Access:</span>
@@ -341,6 +355,40 @@ export default function DepartmentLoginPage({
 
         {/* Login Form */}
         <form onSubmit={handleSubmit} style={{ display: 'flex', flexDirection: 'column', gap: '14px' }}>
+          
+          {/* Department Select Dropdown (Unified Responder Login Page) */}
+          <div className="auth-input-group">
+            <label style={{ fontSize: '0.75rem', fontWeight: 600, color: 'var(--text-secondary)', marginBottom: '6px', display: 'block' }}>
+              Select Responder Department
+            </label>
+            <div className="auth-input-wrapper">
+              <Shield size={18} className="auth-icon" style={{ color: dept.themeColor }} />
+              <select
+                value={selectedDeptKey}
+                onChange={(e) => handleDeptChange(e.target.value)}
+                style={{
+                  width: '100%',
+                  background: 'var(--bg-tertiary)',
+                  border: '1px solid var(--border-color)',
+                  borderRadius: '10px',
+                  padding: '12px 14px 12px 42px',
+                  color: '#fff',
+                  fontSize: '0.85rem',
+                  outline: 'none',
+                  cursor: 'pointer',
+                  appearance: 'none',
+                  WebkitAppearance: 'none'
+                }}
+              >
+                <option value="security">🚓 Campus Security Division</option>
+                <option value="medical">🚑 University Health Centre</option>
+                <option value="fire">🚒 Campus Fire Safety & Warden</option>
+                <option value="harassment">⚖️ Dean of Student Affairs (DSA)</option>
+                <option value="all">🌐 Central University Command</option>
+              </select>
+            </div>
+          </div>
+
           <div className="auth-input-group">
             <label style={{ fontSize: '0.75rem', fontWeight: 600, color: 'var(--text-secondary)', marginBottom: '6px', display: 'block' }}>
               Official Service Badge ID / Staff No

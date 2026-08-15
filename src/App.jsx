@@ -142,10 +142,18 @@ export default function App() {
     setIsAuthOpen(true);
   };
 
-  // Persistent User Session
+  // Persistent User Session (checks sessionStorage for temporary admin sessions, and localStorage for students)
   const [currentUser, setCurrentUser] = useState(() => {
+    const adminSaved = sessionStorage.getItem('fulalert_auth_user');
+    if (adminSaved) return JSON.parse(adminSaved);
+
     const saved = localStorage.getItem('fulalert_auth_user');
-    return saved ? JSON.parse(saved) : null;
+    const parsed = saved ? JSON.parse(saved) : null;
+    // Don't auto-login admin/responder from localStorage on tab startup
+    if (parsed && parsed.role === 'admin') {
+      return null;
+    }
+    return parsed;
   });
 
   const [users, setUsers] = useState(() => {
@@ -183,13 +191,17 @@ export default function App() {
         localStorage.setItem('fulalert_auth_user', JSON.stringify(mergedUser));
       } else {
         // If logged in locally as an admin/officer, keep the session
-        const stored = localStorage.getItem('fulalert_auth_user');
-        const parsed = stored ? JSON.parse(stored) : null;
-        if (parsed && parsed.role === 'admin') {
+        const storedLocal = localStorage.getItem('fulalert_auth_user');
+        const storedSession = sessionStorage.getItem('fulalert_auth_user');
+        const parsedLocal = storedLocal ? JSON.parse(storedLocal) : null;
+        const parsedSession = storedSession ? JSON.parse(storedSession) : null;
+
+        if ((parsedLocal && parsedLocal.role === 'admin') || (parsedSession && parsedSession.role === 'admin')) {
           // Do not log out officer
         } else {
           setCurrentUser(null);
           localStorage.removeItem('fulalert_auth_user');
+          sessionStorage.removeItem('fulalert_auth_user');
         }
       }
     });
@@ -199,7 +211,12 @@ export default function App() {
 
   const handleAuthSuccess = (user, role) => {
     setCurrentUser(user);
-    localStorage.setItem('fulalert_auth_user', JSON.stringify(user));
+    if (role === 'student') {
+      localStorage.setItem('fulalert_auth_user', JSON.stringify(user));
+    } else {
+      sessionStorage.setItem('fulalert_auth_user', JSON.stringify(user));
+    }
+    
     if (role === 'student') {
       navigateTo('student');
     } else {
@@ -216,6 +233,7 @@ export default function App() {
     }
     setCurrentUser(null);
     localStorage.removeItem('fulalert_auth_user');
+    sessionStorage.removeItem('fulalert_auth_user');
     navigateTo('landing');
   };
 
