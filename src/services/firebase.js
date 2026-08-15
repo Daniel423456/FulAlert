@@ -280,11 +280,17 @@ export function subscribeToCloudAlerts(onUpdate) {
   if (!db) return () => {};
 
   try {
-    const q = query(collection(db, 'alerts'), orderBy('timestamp', 'desc'), limit(50));
+    const q = query(collection(db, 'alerts'), limit(100));
     return onSnapshot(q, (snapshot) => {
       const cloudAlerts = [];
       snapshot.forEach(doc => {
         cloudAlerts.push({ id: doc.id, ...doc.data() });
+      });
+      // Sort locally in memory by timestamp descending
+      cloudAlerts.sort((a, b) => {
+        const timeA = new Date(a.timestamp).getTime() || 0;
+        const timeB = new Date(b.timestamp).getTime() || 0;
+        return timeB - timeA;
       });
       if (cloudAlerts.length > 0) {
         onUpdate(cloudAlerts);
@@ -318,11 +324,17 @@ export function subscribeToCloudBroadcasts(onUpdate) {
   if (!db) return () => {};
 
   try {
-    const q = query(collection(db, 'broadcasts'), orderBy('timestamp', 'desc'), limit(20));
+    const q = query(collection(db, 'broadcasts'), limit(50));
     return onSnapshot(q, (snapshot) => {
       const cloudBc = [];
       snapshot.forEach(doc => {
         cloudBc.push({ id: doc.id, ...doc.data() });
+      });
+      // Sort locally in memory by timestamp descending
+      cloudBc.sort((a, b) => {
+        const timeA = new Date(a.timestamp).getTime() || 0;
+        const timeB = new Date(b.timestamp).getTime() || 0;
+        return timeB - timeA;
       });
       if (cloudBc.length > 0) {
         onUpdate(cloudBc);
