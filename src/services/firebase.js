@@ -292,9 +292,7 @@ export function subscribeToCloudAlerts(onUpdate) {
         const timeB = new Date(b.timestamp).getTime() || 0;
         return timeB - timeA;
       });
-      if (cloudAlerts.length > 0) {
-        onUpdate(cloudAlerts);
-      }
+      onUpdate(cloudAlerts);
     }, (error) => {
       console.warn("Firestore snapshot listener error:", error);
     });
@@ -336,9 +334,7 @@ export function subscribeToCloudBroadcasts(onUpdate) {
         const timeB = new Date(b.timestamp).getTime() || 0;
         return timeB - timeA;
       });
-      if (cloudBc.length > 0) {
-        onUpdate(cloudBc);
-      }
+      onUpdate(cloudBc);
     }, (error) => {
       console.warn("Firestore broadcast listener error:", error);
     });

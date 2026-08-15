@@ -25,7 +25,7 @@ import {
 } from 'lucide-react';
 import GpsMap from './GpsMap';
 import { audioAlerts, emergencyBus } from '../utils/audioAlerts';
-import { pushAlertToCloud } from '../services/firebase';
+import { pushAlertToCloud, updateAlertInCloud } from '../services/firebase';
 
 const EMERGENCY_CONTACTS = [
   {
@@ -354,6 +354,9 @@ export default function StudentPortal({
       }
       return a;
     }));
+
+    // Sync resolution to Firebase Cloud Database
+    updateAlertInCloud(activeAlertId, { status: 'resolved' });
   };
 
   // Submit Feedback
