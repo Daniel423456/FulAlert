@@ -87,4 +87,4 @@ Each university branch operates its own isolated dashboard with dedicated access
 ---
 
 ## 📄 License
-MIT License • Built for Federal University Lafia & Campus Safety Communities.
+MIT License • Built for Federal University Lokoja & Campus Safety Communities.
