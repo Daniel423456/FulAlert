@@ -250,8 +250,17 @@ export async function pushAlertToCloud(alert) {
   try {
     if (db) {
       const alertRef = doc(db, 'alerts', alert.id);
+      
+      // Sanitize fields to prevent Firestore serialization crashes due to undefined properties
+      const cleanAlert = {};
+      Object.keys(alert).forEach(key => {
+        if (alert[key] !== undefined && alert[key] !== null) {
+          cleanAlert[key] = alert[key];
+        }
+      });
+
       await setDoc(alertRef, {
-        ...alert,
+        ...cleanAlert,
         serverTime: serverTimestamp()
       }, { merge: true });
     }
@@ -265,8 +274,17 @@ export async function updateAlertInCloud(alertId, updates) {
   try {
     if (db) {
       const alertRef = doc(db, 'alerts', alertId);
+      
+      // Sanitize fields to prevent Firestore serialization crashes due to undefined properties
+      const cleanUpdates = {};
+      Object.keys(updates).forEach(key => {
+        if (updates[key] !== undefined && updates[key] !== null) {
+          cleanUpdates[key] = updates[key];
+        }
+      });
+
       await updateDoc(alertRef, {
-        ...updates,
+        ...cleanUpdates,
         lastUpdated: serverTimestamp()
       });
     }

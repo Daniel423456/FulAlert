@@ -177,11 +177,14 @@ export default function AdminDashboard({
     }));
     
     // Sync status change to Firebase Cloud Database
-    updateAlertInCloud(id, {
-      status: newStatus,
-      assignedResponder: assigned || undefined,
-      notes: newStatus === 'resolved' ? 'Resolved by responder.' : undefined
-    });
+    const cloudUpdates = { status: newStatus };
+    if (assigned) {
+      cloudUpdates.assignedResponder = assigned;
+    }
+    if (newStatus === 'resolved') {
+      cloudUpdates.notes = 'Resolved by responder.';
+    }
+    updateAlertInCloud(id, cloudUpdates);
   };
 
   // Add Responder Field Note & Explanation
