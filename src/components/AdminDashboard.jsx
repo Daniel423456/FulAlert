@@ -22,7 +22,7 @@ import {
 } from 'lucide-react';
 import GpsMap from './GpsMap';
 import { audioAlerts, emergencyBus } from '../utils/audioAlerts';
-import { updateAlertInCloud, pushBroadcastToCloud } from '../services/firebase';
+import { updateAlertInCloud, pushBroadcastToCloud, deleteAlertFromCloud, deleteBroadcastFromCloud, deleteUserFromCloud } from '../services/firebase';
 
 const DEPARTMENT_DESKS = [
   {
@@ -76,6 +76,7 @@ export default function AdminDashboard({
   alerts = [],
   setAlerts,
   users = [],
+  setUsers,
   applyUserStrike,
   broadcasts = [],
   setBroadcasts,
@@ -243,6 +244,39 @@ export default function AdminDashboard({
     }));
 
     alert(`Alert flagged as False. Strike logged for student: ${alertItem.senderName}.`);
+  };
+
+  // Delete Alert permanently
+  const handleDeleteAlert = (alertId) => {
+    if (!window.confirm('🚨 Permanent Action: Are you sure you want to permanently delete this emergency alert document from the database? This cannot be undone.')) {
+      return;
+    }
+    setAlerts(prev => prev.filter(a => a.id !== alertId));
+    setSelectedAlertId(null);
+    deleteAlertFromCloud(alertId);
+    alert('Alert deleted successfully.');
+  };
+
+  // Delete Broadcast permanently
+  const handleDeleteBroadcast = (broadcastId) => {
+    if (!window.confirm('🚨 Permanent Action: Are you sure you want to permanently delete this broadcast advisory?')) {
+      return;
+    }
+    setBroadcasts(prev => prev.filter(b => b.id !== broadcastId));
+    deleteBroadcastFromCloud(broadcastId);
+    alert('Broadcast deleted successfully.');
+  };
+
+  // Delete User permanently
+  const handleDeleteUser = (userId) => {
+    if (!window.confirm('🚨 Permanent Action: Are you sure you want to permanently delete this student profile account from the system?')) {
+      return;
+    }
+    if (setUsers) {
+      setUsers(prev => prev.filter(u => (u.uid === userId || u.matric === userId) ? false : true));
+    }
+    deleteUserFromCloud(userId);
+    alert('User account deleted successfully.');
   };
 
   // Post Broadcast
@@ -941,39 +975,50 @@ export default function AdminDashboard({
                     )}
 
                     {/* Incident control actions */}
-                    {['pending', 'acknowledged', 'responding'].includes(selectedAlert.status) && (
-                      <div className="overlay-actions-row">
-                        {selectedAlert.status === 'pending' && (
+                    <div className="overlay-actions-row" style={{ marginTop: '8px', flexWrap: 'wrap', gap: '8px' }}>
+                      {['pending', 'acknowledged', 'responding'].includes(selectedAlert.status) && (
+                        <>
+                          {selectedAlert.status === 'pending' && (
+                            <button 
+                              className="action-btn ack" 
+                              onClick={() => updateAlertStatus(selectedAlert.id, 'acknowledged')}
+                            >
+                              ACK
+                            </button>
+                          )}
+                          {['pending', 'acknowledged'].includes(selectedAlert.status) && (
+                            <button 
+                              className="action-btn respond" 
+                              onClick={() => updateAlertStatus(selectedAlert.id, 'responding')}
+                            >
+                              DISPATCH
+                            </button>
+                          )}
                           <button 
-                            className="action-btn ack" 
-                            onClick={() => updateAlertStatus(selectedAlert.id, 'acknowledged')}
+                            className="action-btn resolve" 
+                            onClick={() => updateAlertStatus(selectedAlert.id, 'resolved')}
                           >
-                            ACK
+                            RESOLVE
                           </button>
-                        )}
-                        {['pending', 'acknowledged'].includes(selectedAlert.status) && (
                           <button 
-                            className="action-btn respond" 
-                            onClick={() => updateAlertStatus(selectedAlert.id, 'responding')}
+                            className="action-btn false-alarm" 
+                            style={{ background: 'var(--accent-sos)' }}
+                            onClick={() => handleFalseAlarm(selectedAlert)}
                           >
-                            DISPATCH
+                            FALSE ALARM
                           </button>
-                        )}
-                        <button 
-                          className="action-btn resolve" 
-                          onClick={() => updateAlertStatus(selectedAlert.id, 'resolved')}
-                        >
-                          RESOLVE
-                        </button>
-                        <button 
-                          className="action-btn false-alarm" 
-                          style={{ background: 'var(--accent-sos)' }}
-                          onClick={() => handleFalseAlarm(selectedAlert)}
-                        >
-                          FALSE ALARM
-                        </button>
-                      </div>
-                    )}
+                        </>
+                      )}
+                      
+                      {/* Delete Alert Button (Available for all statuses to clean up tests/false alarms) */}
+                      <button 
+                        className="action-btn"
+                        style={{ background: '#7f1d1d', border: '1px solid #ef4444', color: '#fff', flex: 1, minWidth: '90px' }}
+                        onClick={() => handleDeleteAlert(selectedAlert.id)}
+                      >
+                        🗑️ DELETE
+                      </button>
+                    </div>
                   </div>
                 )}
               </div>
@@ -1044,9 +1089,19 @@ export default function AdminDashboard({
                     }` 
                   }}
                 >
-                  <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.75rem', color: 'var(--text-secondary)' }}>
+                   <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.75rem', color: 'var(--text-secondary)' }}>
                     <strong>{bc.title}</strong>
-                    <span>{bc.timestamp}</span>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                      <span>{bc.timestamp}</span>
+                      <button 
+                        type="button"
+                        onClick={() => handleDeleteBroadcast(bc.id)}
+                        style={{ background: 'none', border: 'none', color: '#ef4444', cursor: 'pointer', fontSize: '0.72rem', padding: '2px 4px' }}
+                        title="Delete this advisory"
+                      >
+                        🗑️ Delete
+                      </button>
+                    </div>
                   </div>
                   <p style={{ fontSize: '0.75rem', marginTop: '4px' }}>{bc.message}</p>
                 </div>
@@ -1129,6 +1184,16 @@ export default function AdminDashboard({
                     >
                       {u.strikes >= 3 ? '🚨 SUSPENDED / REVIEW' : u.strikes === 2 ? '⚠️ DEAN REVIEW' : '✔ ACTIVE STATUS'}
                     </span>
+
+                    {/* Delete Student Account button */}
+                    <button 
+                      type="button"
+                      onClick={() => handleDeleteUser(u.uid || u.matric)}
+                      style={{ background: 'rgba(239, 68, 68, 0.12)', border: '1px solid #ef444450', color: '#ef4444', cursor: 'pointer', fontSize: '0.68rem', padding: '4px 8px', borderRadius: '6px', fontWeight: 600 }}
+                      title="Permanently remove student safety account from database"
+                    >
+                      🗑️ Delete User
+                    </button>
 
                     <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-end', gap: '6px' }}>
                       <span style={{ fontSize: '0.65rem', color: 'var(--text-muted)' }}>False Alarm Strikes</span>

@@ -8,6 +8,7 @@ import {
   getDoc,
   getDocs,
   updateDoc, 
+  deleteDoc,
   onSnapshot, 
   query, 
   where,
@@ -381,6 +382,42 @@ export function subscribeToCloudUsers(onUpdate) {
   } catch (err) {
     console.warn("Users subscription error:", err);
     return () => {};
+  }
+}
+
+// 7. Delete Alert from Cloud Database
+export async function deleteAlertFromCloud(alertId) {
+  try {
+    if (db) {
+      const alertRef = doc(db, 'alerts', alertId);
+      await deleteDoc(alertRef);
+    }
+  } catch (err) {
+    console.warn("Cloud delete alert error:", err);
+  }
+}
+
+// 8. Delete Broadcast from Cloud Database
+export async function deleteBroadcastFromCloud(broadcastId) {
+  try {
+    if (db) {
+      const bcRef = doc(db, 'broadcasts', broadcastId);
+      await deleteDoc(bcRef);
+    }
+  } catch (err) {
+    console.warn("Cloud delete broadcast error:", err);
+  }
+}
+
+// 9. Delete User from Cloud Database
+export async function deleteUserFromCloud(uid) {
+  try {
+    if (db) {
+      const userRef = doc(db, 'users', uid);
+      await deleteDoc(userRef);
+    }
+  } catch (err) {
+    console.warn("Cloud delete user error:", err);
   }
 }
 

@@ -659,6 +659,7 @@ export default function App() {
                 alerts={alerts}
                 setAlerts={setAlerts}
                 users={users}
+                setUsers={setUsers}
                 applyUserStrike={applyUserStrike}
                 broadcasts={broadcasts}
                 setBroadcasts={setBroadcasts}
