@@ -790,9 +790,23 @@ export default function StudentPortal({
                       </p>
 
                       {activeAlert?.attachmentUrl && (
-                        <div style={{ display: 'flex', alignItems: 'center', gap: '8px', background: 'var(--bg-secondary)', padding: '6px 12px', borderRadius: '8px', fontSize: '0.75rem' }}>
-                          {attachment === 'photo' ? <Camera size={14} /> : <Volume2 size={14} />}
-                          <span>Attachment Sent: {activeAlert.attachmentUrl}</span>
+                        <div style={{ display: 'flex', alignItems: 'center', gap: '8px', background: 'var(--bg-secondary)', padding: '8px 14px', borderRadius: '8px', fontSize: '0.72rem', color: '#fff', border: '1px solid var(--border-color)', width: '100%', justifyContent: 'center' }}>
+                          {activeAlert.attachmentUrl.startsWith('data:image/') ? (
+                            <>
+                              <Camera size={14} style={{ color: '#60a5fa' }} />
+                              <span>📸 Image Snapshot Attached</span>
+                            </>
+                          ) : activeAlert.attachmentUrl.startsWith('data:audio/') ? (
+                            <>
+                              <Volume2 size={14} style={{ color: '#ef4444' }} />
+                              <span>🎙️ 12s Voice Note Attached</span>
+                            </>
+                          ) : (
+                            <>
+                              <FileText size={14} />
+                              <span>📎 File Attached</span>
+                            </>
+                          )}
                         </div>
                       )}
 
