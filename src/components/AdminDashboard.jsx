@@ -279,6 +279,47 @@ export default function AdminDashboard({
     alert('User account deleted successfully.');
   };
 
+  // Delete bulk alerts permanently
+  const handleDeleteBulkAlerts = (type) => {
+    let targetAlerts = [];
+    let confirmMsg = '';
+
+    // Filter alerts belonging to this department desk
+    const deskAlerts = alerts.filter(a => {
+      if (activeDeskObj.categoryFilter && !activeDeskObj.categoryFilter.includes(a.category)) {
+        return false;
+      }
+      return true;
+    });
+
+    if (type === 'resolved') {
+      targetAlerts = deskAlerts.filter(a => a.status === 'resolved');
+      confirmMsg = `🚨 Bulk Action: Are you sure you want to permanently delete all (${targetAlerts.length}) RESOLVED emergency alerts for this department?`;
+    } else {
+      targetAlerts = deskAlerts;
+      confirmMsg = `🚨 Bulk Action: Are you sure you want to permanently delete ALL (${targetAlerts.length}) emergency alerts (including pending and active ones) for this department?`;
+    }
+
+    if (targetAlerts.length === 0) {
+      alert('No alerts found matching this criteria to delete.');
+      return;
+    }
+
+    if (!window.confirm(confirmMsg)) return;
+
+    // Delete locally
+    const targetIds = targetAlerts.map(a => a.id);
+    setAlerts(prev => prev.filter(a => !targetIds.includes(a.id)));
+    setSelectedAlertId(null);
+
+    // Delete from Firestore
+    targetIds.forEach(id => {
+      deleteAlertFromCloud(id);
+    });
+
+    alert(`Successfully deleted ${targetIds.length} alerts.`);
+  };
+
   // Post Broadcast
   const handlePostBroadcast = (e) => {
     e.preventDefault();
@@ -584,6 +625,54 @@ export default function AdminDashboard({
                     {status.toUpperCase()}
                   </button>
                 ))}
+              </div>
+
+              {/* Bulk delete options */}
+              <div style={{ display: 'flex', gap: '6px', marginBottom: '10px' }}>
+                <button
+                  type="button"
+                  onClick={() => handleDeleteBulkAlerts('resolved')}
+                  style={{
+                    flex: 1,
+                    fontSize: '0.62rem',
+                    fontWeight: 700,
+                    padding: '5px 8px',
+                    background: 'rgba(245, 158, 11, 0.1)',
+                    border: '1px solid rgba(245, 158, 11, 0.3)',
+                    borderRadius: '6px',
+                    color: '#f59e0b',
+                    cursor: 'pointer',
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    gap: '4px'
+                  }}
+                  title="Delete all resolved alerts from this department desk"
+                >
+                  🧹 Clear Resolved
+                </button>
+                <button
+                  type="button"
+                  onClick={() => handleDeleteBulkAlerts('all')}
+                  style={{
+                    flex: 1,
+                    fontSize: '0.62rem',
+                    fontWeight: 700,
+                    padding: '5px 8px',
+                    background: 'rgba(239, 68, 68, 0.1)',
+                    border: '1px solid rgba(239, 68, 68, 0.3)',
+                    borderRadius: '6px',
+                    color: '#ef4444',
+                    cursor: 'pointer',
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    gap: '4px'
+                  }}
+                  title="Permanently delete ALL alerts from this department desk"
+                >
+                  🗑️ Delete All
+                </button>
               </div>
 
               {filteredAlerts.length === 0 ? (
