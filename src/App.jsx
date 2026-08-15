@@ -468,7 +468,10 @@ export default function App() {
   // Sync active alert ID based on user status
   useEffect(() => {
     if (currentUser) {
-      const active = alerts.find(a => a.senderMatric === currentUser.matric && ['pending', 'acknowledged', 'responding'].includes(a.status));
+      const active = alerts.find(a => 
+        (a.senderUid === currentUser.uid || (currentUser.matric && a.senderMatric === currentUser.matric)) && 
+        ['pending', 'acknowledged', 'responding'].includes(a.status)
+      );
       setActiveAlertId(active ? active.id : null);
     } else {
       setActiveAlertId(null);

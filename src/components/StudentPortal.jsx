@@ -294,12 +294,14 @@ export default function StudentPortal({
 
     const newAlert = {
       id: `alt-${Date.now().toString().slice(-6)}`,
-      senderName: isAnonymous ? 'Anonymous Student' : currentUser.name,
-      senderMatric: isAnonymous ? 'ANON' : currentUser.matric,
-      senderPhone: isAnonymous ? 'N/A' : currentUser.phone,
+      senderName: isAnonymous ? 'Anonymous Student' : (currentUser.fullName || currentUser.name || 'Student'),
+      senderMatric: isAnonymous ? 'ANON' : (currentUser.matric || ''),
+      senderPhone: isAnonymous ? 'N/A' : (currentUser.phone || ''),
       senderBlood: isAnonymous ? 'N/A' : (currentUser.blood || 'O+'),
       senderAllergies: isAnonymous ? 'N/A' : (currentUser.allergies || 'None'),
       senderContact: isAnonymous ? 'N/A' : (currentUser.emergencyContact || 'Campus Security'),
+      senderUid: currentUser.uid || '',
+      senderEmail: currentUser.email || '',
       category: activeCategory,
       description: incidentDescription.trim() || 'Distress signal raised by student. Immediate response requested.',
       isAnonymous: isAnonymous,
@@ -441,7 +443,7 @@ export default function StudentPortal({
                     🟢 Verified
                   </span>
                 </div>
-                <p style={{ fontSize: '0.9rem', fontWeight: 800, marginTop: '4px', color: '#fff' }}>{currentUser.name}</p>
+                <p style={{ fontSize: '0.9rem', fontWeight: 800, marginTop: '4px', color: '#fff' }}>{currentUser.fullName || currentUser.name}</p>
                 <p style={{ fontSize: '0.72rem', color: 'var(--text-secondary)' }}>
                   Matric: <strong>{currentUser.matric}</strong> • Blood: <strong>{currentUser.blood || 'O+'}</strong>
                 </p>
