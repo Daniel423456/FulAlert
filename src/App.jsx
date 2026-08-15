@@ -166,7 +166,14 @@ export default function App() {
   // Firebase Authentication State Listener
   useEffect(() => {
     const unsubscribeAuth = subscribeToAuthChanges((firebaseUser, profile) => {
+      // If we are currently on an admin page, do not let a student session overwrite the logged-in officer
+      const isCurrentlyAdminView = window.location.hash.startsWith('#/admin');
+      
       if (firebaseUser && profile) {
+        if (isCurrentlyAdminView && profile.role !== 'admin') {
+          return; // Ignore student profile overwrite
+        }
+
         const mergedUser = {
           ...profile,
           emailVerified: firebaseUser.emailVerified,
