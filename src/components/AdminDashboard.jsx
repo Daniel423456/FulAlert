@@ -138,22 +138,27 @@ export default function AdminDashboard({
 
   // Play emergency dispatch siren on Admin Dashboard when incoming pending alert arrives
   useEffect(() => {
-    const hasPending = alerts.some(a => a.status === 'pending');
-    
-    if (alerts.length > prevAlertsCountRef.current && hasPending) {
-      if (!isAudioMuted) {
-        audioAlerts.unlockAudio();
-        audioAlerts.playEmergencySiren();
+    // Strictly filter alerts for this specific department to avoid false sirens for other desks
+    const deskAlerts = alerts.filter(a => {
+      if (activeDeskObj.categoryFilter && !activeDeskObj.categoryFilter.includes(a.category)) {
+        return false;
       }
+      return true;
+    });
+
+    const hasPending = deskAlerts.some(a => a.status === 'pending');
+    
+    if (hasPending && !isAudioMuted) {
+      audioAlerts.unlockAudio();
+      audioAlerts.playEmergencySiren();
     } else if (!hasPending && !isTestingSiren) {
       audioAlerts.stopEmergencySiren();
     }
-    prevAlertsCountRef.current = alerts.length;
 
     return () => {
       audioAlerts.stopEmergencySiren();
     };
-  }, [alerts, isAudioMuted, isTestingSiren]);
+  }, [alerts, isAudioMuted, isTestingSiren, activeDeskObj]);
 
   // Status handlers
   const updateAlertStatus = (id, newStatus, assigned = null) => {
