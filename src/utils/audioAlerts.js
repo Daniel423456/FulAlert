@@ -67,34 +67,52 @@ class AudioAlertSystem {
 
       this.isSirenPlaying = true;
       
-      // Dual oscillator alarm (high and piercing)
-      const osc = ctx.createOscillator();
-      const gain = ctx.createGain();
+      // Dual oscillators for a rich, gritty, and piercing wailing emergency siren
+      const osc1 = ctx.createOscillator();
+      const osc2 = ctx.createOscillator();
+      const gain1 = ctx.createGain();
+      const gain2 = ctx.createGain();
+      const masterGain = ctx.createGain();
 
-      osc.type = 'sawtooth';
-      osc.frequency.setValueAtTime(800, ctx.currentTime);
+      osc1.type = 'sawtooth';
+      osc1.frequency.setValueAtTime(600, ctx.currentTime);
 
-      // Audible, clear volume for security control room
-      gain.gain.setValueAtTime(0.35, ctx.currentTime);
+      osc2.type = 'square';
+      osc2.frequency.setValueAtTime(605, ctx.currentTime); // slightly detuned for chorus wail
 
-      osc.connect(gain);
-      gain.connect(ctx.destination);
-      osc.start();
+      gain1.gain.setValueAtTime(0.2, ctx.currentTime);
+      gain2.gain.setValueAtTime(0.15, ctx.currentTime);
+      masterGain.gain.setValueAtTime(0.35, ctx.currentTime);
 
-      let high = true;
+      osc1.connect(gain1);
+      gain1.connect(masterGain);
+
+      osc2.connect(gain2);
+      gain2.connect(masterGain);
+
+      masterGain.connect(ctx.destination);
+
+      osc1.start();
+      osc2.start();
+
+      let phase = 0;
       this.sirenInterval = setInterval(() => {
         if (!this.isSirenPlaying) return;
         const now = ctx.currentTime;
-        if (high) {
-          osc.frequency.exponentialRampToValueAtTime(1300, now + 0.35);
+        
+        // Fast, high-urgency piercing wail sweep between 600Hz and 1100Hz
+        if (phase === 0) {
+          osc1.frequency.linearRampToValueAtTime(1100, now + 0.25);
+          osc2.frequency.linearRampToValueAtTime(1105, now + 0.25);
         } else {
-          osc.frequency.exponentialRampToValueAtTime(750, now + 0.35);
+          osc1.frequency.linearRampToValueAtTime(600, now + 0.25);
+          osc2.frequency.linearRampToValueAtTime(605, now + 0.25);
         }
-        high = !high;
-      }, 400);
+        phase = (phase + 1) % 2;
+      }, 300);
 
-      this.sirenOscillator = osc;
-      this.sirenGain = gain;
+      this.sirenOscillator = [osc1, osc2];
+      this.sirenGain = masterGain;
     } catch (err) {
       console.warn('Siren playback error:', err);
     }
@@ -108,10 +126,13 @@ class AudioAlertSystem {
       this.sirenInterval = null;
     }
     if (this.sirenOscillator) {
-      try {
-        this.sirenOscillator.stop();
-        this.sirenOscillator.disconnect();
-      } catch (e) {}
+      const oscillators = Array.isArray(this.sirenOscillator) ? this.sirenOscillator : [this.sirenOscillator];
+      oscillators.forEach(osc => {
+        try {
+          osc.stop();
+          osc.disconnect();
+        } catch (e) {}
+      });
       this.sirenOscillator = null;
     }
     if (this.sirenGain) {
