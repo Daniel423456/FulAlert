@@ -1,0 +1,71 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+
+    // Helper: Checks if the user is authenticated
+    function isAuthenticated() {
+      return request.auth != null;
+    }
+
+    // Helper: Checks if the logged-in user matches the document ID
+    function isOwner(userId) {
+      return isAuthenticated() && request.auth.uid == userId;
+    }
+
+    // Helper: Checks if the user is a registered Admin/Officer
+    function isAdmin() {
+      return isAuthenticated() && 
+        get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role == 'admin';
+    }
+
+    // ==========================================
+    // USERS COLLECTION
+    // ==========================================
+    match /users/{userId} {
+      // Allow reading user profiles to verify accounts, sync directories, or retrieve details
+      allow read: if isAuthenticated();
+
+      // Create: Users can register themselves. Ensure new accounts default to role 'user'.
+      allow create: if isAuthenticated() && 
+        isOwner(userId) && 
+        request.resource.data.role == 'user';
+
+      // Update: Users can update their profile information.
+      // Crucial: A user CANNOT change their own role or elevate themselves to admin!
+      allow update: if isOwner(userId) && 
+        (!request.resource.data.diff(resource.data).affectedKeys().hasAny(['role', 'uid', 'email'])) &&
+        resource.data.role == request.resource.data.role;
+
+      // Delete: Admins only
+      allow delete: if isAdmin();
+    }
+
+    // ==========================================
+    // ALERTS COLLECTION (Distress signals)
+    // ==========================================
+    match /alerts/{alertId} {
+      // All authenticated campus members can view incidents
+      allow read: if isAuthenticated();
+      
+      // Any logged-in student/faculty can trigger a distress signal
+      allow create: if isAuthenticated();
+
+      // Only responders/admins or the original reporter can update alert status
+      allow update: if isAdmin() || (isAuthenticated() && resource.data.studentId == request.auth.uid);
+      
+      // Delete alerts: Admins only
+      allow delete: if isAdmin();
+    }
+
+    // ==========================================
+    // BROADCASTS COLLECTION (Advisories)
+    // ==========================================
+    match /broadcasts/{broadcastId} {
+      // Anyone logged in can read advisories
+      allow read: if isAuthenticated();
+      
+      // Only authorized responders/admins can post, update or delete broadcasts
+      allow write: if isAdmin();
+    }
+  }
+}

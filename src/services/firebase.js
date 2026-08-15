@@ -1,4 +1,4 @@
-// Firebase Realtime Cloud Database Service for FULALERT
+// Firebase Realtime Cloud Database & Authentication Service for FULALERT
 import { initializeApp, getApps } from 'firebase/app';
 import { 
   getFirestore, 
@@ -15,6 +15,18 @@ import {
   limit,
   serverTimestamp 
 } from 'firebase/firestore';
+import {
+  getAuth,
+  createUserWithEmailAndPassword,
+  signInWithEmailAndPassword,
+  signOut as firebaseSignOut,
+  sendEmailVerification,
+  sendPasswordResetEmail,
+  confirmPasswordReset,
+  onAuthStateChanged,
+  GoogleAuthProvider,
+  signInWithPopup
+} from 'firebase/auth';
 
 // Official Production Firebase Configuration for FULALERT
 const firebaseConfig = {
@@ -29,6 +41,7 @@ const firebaseConfig = {
 
 let app = null;
 let db = null;
+let auth = null;
 let isFirebaseConnected = false;
 
 try {
@@ -38,11 +51,199 @@ try {
     app = getApps()[0];
   }
   db = getFirestore(app);
+  auth = getAuth(app);
   isFirebaseConnected = true;
-  console.log("✅ FULALERT Connected to Live Firebase Cloud Database (Project: fulalert)");
+  console.log("✅ FULALERT Connected to Live Firebase Cloud Database & Authentication (Project: fulalert)");
 } catch (err) {
   console.warn("Firebase initialization notice:", err);
 }
+
+// ==========================================
+// FIREBASE AUTHENTICATION FUNCTIONS
+// ==========================================
+
+// Register a new user with Email/Password
+export async function registerUserWithEmail(email, password, extraData) {
+  if (!auth) throw new Error("Firebase Auth not initialized");
+  
+  // 1. Create user in Firebase Auth
+  const userCredential = await createUserWithEmailAndPassword(auth, email, password);
+  const user = userCredential.user;
+  const uid = user.uid;
+
+  // 2. Send verification email
+  try {
+    await sendEmailVerification(user);
+  } catch (emailErr) {
+    console.warn("Verification email send warning:", emailErr);
+  }
+
+  // 3. Create profile document in Firestore (users/{uid})
+  const userDocRef = doc(db, 'users', uid);
+  const userProfile = {
+    uid: uid,
+    fullName: extraData.name || extraData.fullName || '',
+    email: email.toLowerCase().trim(),
+    photoURL: extraData.photoURL || '',
+    role: extraData.role || 'user',
+    status: 'active',
+    emailVerified: false,
+    plan: 'free',
+    subscriptionStatus: 'inactive',
+    createdAt: serverTimestamp(),
+    updatedAt: serverTimestamp(),
+    lastLoginAt: serverTimestamp(),
+    
+    // Application-specific fields
+    matric: (extraData.matric || '').toUpperCase().trim(),
+    phone: (extraData.phone || '').trim(),
+    department: extraData.department || '',
+    residence: extraData.residence || '',
+    blood: extraData.blood || 'O+',
+    allergies: extraData.allergies || 'None',
+    emergencyContact: extraData.emergencyContact || '',
+    strikes: 0
+  };
+
+  await setDoc(userDocRef, userProfile);
+  return { user, profile: userProfile };
+}
+
+// Log in user with Email/Password
+export async function loginUserWithEmail(email, password) {
+  if (!auth) throw new Error("Firebase Auth not initialized");
+
+  const userCredential = await signInWithEmailAndPassword(auth, email, password);
+  const user = userCredential.user;
+  const uid = user.uid;
+
+  // Fetch profile from Firestore
+  const userDocRef = doc(db, 'users', uid);
+  const userDoc = await getDoc(userDocRef);
+  
+  if (!userDoc.exists()) {
+    throw new Error("USER_PROFILE_NOT_FOUND");
+  }
+
+  const profile = userDoc.data();
+
+  // Update lastLoginAt and emailVerified status
+  await updateDoc(userDocRef, {
+    lastLoginAt: serverTimestamp(),
+    emailVerified: user.emailVerified,
+    updatedAt: serverTimestamp()
+  });
+
+  profile.emailVerified = user.emailVerified;
+  profile.lastLoginAt = new Date().toLocaleString();
+
+  return { user, profile };
+}
+
+// Google Sign-In Integration
+export async function loginWithGoogle() {
+  if (!auth) throw new Error("Firebase Auth not initialized");
+
+  const provider = new GoogleAuthProvider();
+  const result = await signInWithPopup(auth, provider);
+  const user = result.user;
+  const uid = user.uid;
+
+  const userDocRef = doc(db, 'users', uid);
+  const userDoc = await getDoc(userDocRef);
+
+  let profile = {};
+
+  if (!userDoc.exists()) {
+    // Create new profile with sensible defaults
+    profile = {
+      uid: uid,
+      fullName: user.displayName || '',
+      email: user.email.toLowerCase().trim(),
+      photoURL: user.photoURL || '',
+      role: 'user',
+      status: 'active',
+      emailVerified: true,
+      plan: 'free',
+      subscriptionStatus: 'inactive',
+      createdAt: serverTimestamp(),
+      updatedAt: serverTimestamp(),
+      lastLoginAt: serverTimestamp(),
+      
+      // Application-specific fields
+      matric: '',
+      phone: user.phoneNumber || '',
+      department: '',
+      residence: '',
+      blood: 'O+',
+      allergies: 'None',
+      emergencyContact: '',
+      strikes: 0
+    };
+    await setDoc(userDocRef, profile);
+  } else {
+    // Retrieve and update existing profile (preserve existing application role/plan/subscription)
+    profile = userDoc.data();
+    await updateDoc(userDocRef, {
+      lastLoginAt: serverTimestamp(),
+      emailVerified: true,
+      updatedAt: serverTimestamp()
+    });
+    profile.emailVerified = true;
+  }
+
+  return { user, profile };
+}
+
+// Send Password Reset Email
+export async function sendPasswordReset(email) {
+  if (!auth) throw new Error("Firebase Auth not initialized");
+  await sendPasswordResetEmail(auth, email.trim());
+}
+
+// Confirm Password Reset with Code
+export async function resetPassword(actionCode, newPassword) {
+  if (!auth) throw new Error("Firebase Auth not initialized");
+  await confirmPasswordReset(auth, actionCode, newPassword);
+}
+
+// Log Out User
+export async function logoutUser() {
+  if (!auth) return;
+  await firebaseSignOut(auth);
+}
+
+// Listen to Auth State changes
+export function subscribeToAuthChanges(callback) {
+  if (!auth) return () => {};
+  return onAuthStateChanged(auth, async (user) => {
+    if (user) {
+      try {
+        const userDocRef = doc(db, 'users', user.uid);
+        const userDoc = await getDoc(userDocRef);
+        if (userDoc.exists()) {
+          callback(user, userDoc.data());
+        } else {
+          // Fallback if profile doc is not created yet
+          callback(user, {
+            uid: user.uid,
+            email: user.email,
+            emailVerified: user.emailVerified,
+            role: 'user'
+          });
+        }
+      } catch (err) {
+        callback(user, null);
+      }
+    } else {
+      callback(null, null);
+    }
+  });
+}
+
+// ==========================================
+// FIRESTORE DATABASE DISPATCH FUNCTIONS
+// ==========================================
 
 // 1. Send Emergency Alert to Cloud Database
 export async function pushAlertToCloud(alert) {
@@ -134,25 +335,7 @@ export function subscribeToCloudBroadcasts(onUpdate) {
   }
 }
 
-// 6. Save User Profile in Cloud Database (Registration)
-export async function saveUserToCloud(user) {
-  try {
-    if (db && user.matric) {
-      const cleanDocId = user.matric.replace(/[^a-zA-Z0-9]/g, '_').toUpperCase();
-      const userRef = doc(db, 'users', cleanDocId);
-      await setDoc(userRef, {
-        ...user,
-        updatedAt: serverTimestamp()
-      }, { merge: true });
-      return { success: true };
-    }
-  } catch (err) {
-    console.warn("Cloud user save error:", err);
-    return { success: false, error: err.message };
-  }
-}
-
-// 7. Real-Time User Accounts Listener (Keeps student registry synced across all devices)
+// 6. Real-Time User Accounts Listener
 export function subscribeToCloudUsers(onUpdate) {
   if (!db) return () => {};
 
@@ -175,56 +358,4 @@ export function subscribeToCloudUsers(onUpdate) {
   }
 }
 
-// 8. Authenticate User against Cloud Database
-export async function authenticateWithCloud(identifier, password) {
-  if (!db) return null;
-
-  try {
-    const cleanId = identifier.trim();
-    const cleanDocId = cleanId.replace(/[^a-zA-Z0-9]/g, '_').toUpperCase();
-
-    // Check direct doc by matric
-    const directDocRef = doc(db, 'users', cleanDocId);
-    const directDoc = await getDoc(directDocRef);
-    
-    if (directDoc.exists()) {
-      const userData = directDoc.data();
-      if (!userData.password || userData.password === password.trim()) {
-        return { success: true, user: userData };
-      } else {
-        return { success: false, error: 'INCORRECT_PASSWORD' };
-      }
-    }
-
-    // Query by phone, email, or matric case-insensitively
-    const usersCol = collection(db, 'users');
-    const snapshot = await getDocs(usersCol);
-    
-    let matchedUser = null;
-    snapshot.forEach(d => {
-      const u = d.data();
-      if (
-        (u.matric && u.matric.toLowerCase() === cleanId.toLowerCase()) ||
-        (u.email && u.email.toLowerCase() === cleanId.toLowerCase()) ||
-        (u.phone && u.phone.replace(/[^0-9]/g, '') === cleanId.replace(/[^0-9]/g, ''))
-      ) {
-        matchedUser = u;
-      }
-    });
-
-    if (matchedUser) {
-      if (!matchedUser.password || matchedUser.password === password.trim()) {
-        return { success: true, user: matchedUser };
-      } else {
-        return { success: false, error: 'INCORRECT_PASSWORD' };
-      }
-    }
-
-    return { success: false, error: 'USER_NOT_FOUND' };
-  } catch (err) {
-    console.warn("Cloud auth error:", err);
-    return { success: false, error: 'NETWORK_ERROR' };
-  }
-}
-
-export { isFirebaseConnected, db };
+export { isFirebaseConnected, db, auth };

@@ -5,8 +5,14 @@ import AdminDashboard from './components/AdminDashboard';
 import HomePage from './components/HomePage';
 import AuthModal from './components/AuthModal';
 import InstallPwaModal from './components/InstallPwaModal';
+import { 
+  subscribeToCloudAlerts, 
+  subscribeToCloudBroadcasts, 
+  subscribeToCloudUsers,
+  subscribeToAuthChanges,
+  logoutUser 
+} from './services/firebase';
 import DepartmentLoginPage, { DEPARTMENT_CONFIGS } from './components/DepartmentLoginPage';
-import { subscribeToCloudAlerts, subscribeToCloudBroadcasts, subscribeToCloudUsers } from './services/firebase';
 
 // Define campus map locations
 const CAMPUS_LOCATIONS = {
@@ -147,6 +153,43 @@ export default function App() {
     return saved ? JSON.parse(saved) : [];
   });
 
+  // Handle URL query parameters for Firebase Password Reset links
+  useEffect(() => {
+    const urlParams = new URLSearchParams(window.location.search);
+    const modeParam = urlParams.get('mode');
+    const oobCodeParam = urlParams.get('oobCode');
+    if (modeParam === 'resetPassword' && oobCodeParam) {
+      handleOpenAuth('resetPassword', 'student');
+    }
+  }, []);
+
+  // Firebase Authentication State Listener
+  useEffect(() => {
+    const unsubscribeAuth = subscribeToAuthChanges((firebaseUser, profile) => {
+      if (firebaseUser && profile) {
+        const mergedUser = {
+          ...profile,
+          emailVerified: firebaseUser.emailVerified,
+          lastLoginAt: firebaseUser.metadata.lastSignInTime || new Date().toLocaleString()
+        };
+        setCurrentUser(mergedUser);
+        localStorage.setItem('fulalert_auth_user', JSON.stringify(mergedUser));
+      } else {
+        // If logged in locally as an admin/officer, keep the session
+        const stored = localStorage.getItem('fulalert_auth_user');
+        const parsed = stored ? JSON.parse(stored) : null;
+        if (parsed && parsed.role === 'admin') {
+          // Do not log out officer
+        } else {
+          setCurrentUser(null);
+          localStorage.removeItem('fulalert_auth_user');
+        }
+      }
+    });
+
+    return () => unsubscribeAuth();
+  }, []);
+
   const handleAuthSuccess = (user, role) => {
     setCurrentUser(user);
     localStorage.setItem('fulalert_auth_user', JSON.stringify(user));
@@ -158,7 +201,12 @@ export default function App() {
     }
   };
 
-  const handleLogout = () => {
+  const handleLogout = async () => {
+    try {
+      await logoutUser();
+    } catch (err) {
+      console.warn("Logout error:", err);
+    }
     setCurrentUser(null);
     localStorage.removeItem('fulalert_auth_user');
     navigateTo('landing');
