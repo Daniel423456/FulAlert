@@ -800,6 +800,41 @@ export default function AdminDashboard({
                         </div>
                       )}
 
+                      {/* Incident Media Attachment (Photo or Audio) */}
+                      {selectedAlert.attachmentUrl && (
+                        <div style={{ marginTop: '8px', background: 'rgba(251, 191, 36, 0.05)', padding: '10px', borderRadius: '10px', border: '1px solid rgba(251, 191, 36, 0.2)' }}>
+                          {selectedAlert.attachmentUrl.startsWith('data:image/') ? (
+                            <>
+                              <strong style={{ fontSize: '0.7rem', color: 'var(--brand-orange)', display: 'block', marginBottom: '6px' }}>
+                                📸 ATTACHED INCIDENT PHOTO:
+                              </strong>
+                              <a href={selectedAlert.attachmentUrl} target="_blank" rel="noreferrer">
+                                <img 
+                                  src={selectedAlert.attachmentUrl} 
+                                  alt="Attached Incident" 
+                                  style={{ width: '100%', maxHeight: '160px', objectFit: 'contain', borderRadius: '8px', border: '1px solid var(--border-color)', cursor: 'zoom-in' }} 
+                                />
+                              </a>
+                            </>
+                          ) : selectedAlert.attachmentUrl.startsWith('data:audio/') ? (
+                            <>
+                              <strong style={{ fontSize: '0.7rem', color: 'var(--brand-orange)', display: 'block', marginBottom: '6px' }}>
+                                🔊 ATTACHED VOICE MEMO (12s):
+                              </strong>
+                              <audio 
+                                controls 
+                                src={selectedAlert.attachmentUrl} 
+                                style={{ width: '100%', height: '32px' }} 
+                              />
+                            </>
+                          ) : (
+                            <p style={{ fontSize: '0.7rem', color: 'var(--text-secondary)' }}>
+                              🔗 <a href={selectedAlert.attachmentUrl} target="_blank" rel="noreferrer" style={{ color: '#60a5fa' }}>Download Attachment File</a>
+                            </p>
+                          )}
+                        </div>
+                      )}
+
                       {/* Responder Field Notes & Explanation Log */}
                       <div style={{ marginTop: '8px', background: 'var(--bg-secondary)', padding: '10px', borderRadius: '10px', border: '1px solid var(--border-color)' }}>
                         <strong style={{ fontSize: '0.72rem', color: 'var(--brand-orange)', display: 'block', marginBottom: '4px' }}>
