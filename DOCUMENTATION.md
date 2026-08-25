@@ -25,26 +25,38 @@
 ## 1. Introduction
 
 ### Background of the Topic
-In modern tertiary institutions, campus safety and emergency response times are critical factors influencing student well-being and academic focus. Historically, emergency notifications on university campuses relied on physical alarms, word-of-mouth reports, or localized security booths. However, with the widespread availability of web technologies, smart devices, and real-time cloud computing, universities are moving towards integrated, digital campus safety platforms. 
+In the contemporary landscape of higher education management, the security of students, faculty, and physical infrastructure has emerged as a paramount institutional priority. Tertiary institutions represent dense micro-communities containing residential areas (hostels), laboratory complexes, lecture theaters, administrative offices, and social hubs. This density, combined with the diverse nature of campus life, exposes universities to a wide range of emergency scenarios, including:
+- Acute medical crises (e.g., asthmatic attacks, sickle cell crises, cardiovascular incidents).
+- Security threats (e.g., intrusions, physical assaults, theft, gang activities, cultism).
+- Fire outbreaks (e.g., electrical faults in student hostels, chemical spills in laboratories).
+- Social and administrative issues (e.g., gender-based violence, academic intimidation, and student welfare crises).
 
-**FULALERT** is a real-time web-based crisis response system designed to digitize safety dispatch workflows. By utilizing modern web features—such as Geolocation APIs, Web Audio synthesizers, and real-time cloud-synchronized document stores—it bridges the critical time gap between incident occurrence and responder arrival.
+Traditionally, emergency notifications on university campuses relied on loud, non-specific sirens, word-of-mouth reports, or localized security guard rooms. These methods have significant limitations. With the rise of smart device technologies, high-speed mobile networks, and real-time cloud computing, there is an opportunity to digitize campus safety. 
+
+**FULALERT** is a real-time, cloud-synchronized emergency dispatch and safety management web application. By leveraging modern web browsers, it runs on standard smartphones without requiring complex app-store installations. The system utilizes:
+- The **W3C Geolocation API** to capture exact coordinate telemetry.
+- The **Web Audio API** to synthesize alarms and process voice notes.
+- **Firebase Firestore**'s document synchronization to bypass composite query limitations and deliver sub-second data transmission.
+- **Vercel** serverless environments to maintain continuous availability.
 
 ### Problem Statement
-Federal University Lokoja (FUL) operates across multiple campus locations (including the Adankolo and Felele campuses). Currently, students facing emergencies—such as health issues in hostels, fire outbreaks, physical threats, or academic harassment—have no centralized, low-latency method to contact responder units. Relying on phone numbers or physical security desks causes several issues:
-1. **Lack of Telemetry**: Dispatchers do not receive coordinates or locations, leading to delayed rescues.
-2. **Lack of Evidence**: Responders cannot preview the scene via incident photos or silent audio recordings.
-3. **Delayed Alerting**: No automated siren or audible dispatcher notifications exist, meaning emergencies can sit unread on desk logs.
-4. **False Alarm Vulnerability**: Anonymity in reporting allows users to report false alarms without disciplinary tracking.
+Federal University Lokoja (FUL) is a fast-growing institution in Kogi State, Nigeria, operating across two main campuses: the Adankolo Campus and the Felele Campus. This split-campus structure introduces several operational challenges for safety dispatch:
+
+1. **Geographical Separation**: The physical distance between the campuses slows down centralized communication. A crisis at the Felele campus may not be immediately noticed or coordinate-mapped by dispatchers at Adankolo.
+2. **Lack of Location Telemetry**: When an emergency occurs—especially at night or in remote parts of the campus—students struggle to explain their exact coordinates. This leads to rescue delays as responders search for the scene.
+3. **No Direct Channels for Sensitive Issues**: Incidents involving harassment or gender-based violence (GBV) often go unreported because students are hesitant to discuss them at open, public security posts.
+4. **Delayed Responder Notifications**: Traditional desktop alerts can go unnoticed. Without an automated, audible alarm synced directly to incoming incidents, emergency logs can remain unread.
+5. **False Alarm Vulnerability**: Anonymity in reporting allows users to trigger false alarms without accountability, wasting limited university security and medical resources.
 
 ### Aim and Objective
-The aim of the **FULALERT** project is to design, implement, and deploy a secure, real-time emergency dispatch and safety management system for Federal University Lokoja.
+The primary aim of **FULALERT** is to design, implement, and deploy a secure, real-time emergency dispatch and safety management web application tailored to the split-campus structure of Federal University Lokoja.
 
 **Objectives:**
-- Create a mobile-responsive Student Portal allowing immediate SOS triggers with media attachments (voice memos, photo uploads).
-- Implement a Unified Officer Login Portal requiring official credentials and department master keys to prevent unauthorized dashboard access.
-- Deploy specialized dispatch dashboards for **Security**, **Health Centre**, **Fire Safety**, **DSA Welfare**, and **Central Command**.
-- Develop a dual-oscillator synthesizer wailing siren that plays automatically on the dashboard when pending emergencies are detected.
-- Incorporate a student strike/penalty tracking registry to deter false alarms in compliance with university discipline policies.
+- **Create a Mobile-Responsive Student Portal**: Develop an intuitive interface that allows students to trigger an SOS alert in under three seconds. This portal must support media attachments (voice memos, photo uploads) to provide immediate context from the scene.
+- **Establish a Unified Officer Login Gateway**: Implement a secure gateway for authorized responders, featuring department selection and master authorization keys to prevent unauthorized access.
+- **Deploy Specialized Dispatch Dashboards**: Build custom dashboard interfaces for **Security**, **Health Centre**, **Fire Safety**, **DSA Welfare**, and **Central Command** to route alerts directly to the correct responder units.
+- **Develop a Web Audio Siren Synthesizer**: Create an automated yelping siren that plays on the dispatcher's dashboard when pending incidents are detected.
+- **Incorporate a Student Strike and Penalty Tracking System**: Implement a three-strike visual disciplinary registry for false alarms to deter system misuse.
 
 ---
 
@@ -60,12 +72,45 @@ The frontend of FULALERT is built using React, CSS variables, and Lucide Icons. 
 [Firestore Database] <-- (Push Sanitized Document) <-----------------[Base64 Media Encoder]
 ```
 
-1. **SOS Dispatch Trigger**: A high-priority event is dispatched when a student clicks or holds the central SOS button. This captures:
-   - **Position Telemetry**: Obtained via the HTML5 `navigator.geolocation` API, mapping the student's exact coordinates.
-   - **Landmark Mapping**: Translates raw coordinates to closest pre-mapped university landmarks (e.g. SUG Secretariat, Male Hostel Block A, Academic Complex) using Euclidean distance algorithms.
-2. **Base64 Media Encoder**: Audio clips recorded via the student’s microphone (`MediaRecorder` API) or pictures taken with their camera are read as arrays and encoded into compact Base64 strings. These are appended directly into the incident document payload to bypass storage buckets and keep writes atomic.
-3. **Real-time Firestore Listeners**: Admin dashboards subscribe to the database using Firestore's `onSnapshot` listener. Any document added to the `/alerts` collection instantly updates the React state of the active officer's desk.
-4. **Dual-Oscillator Synthesizer (Siren)**: The dashboard utilizes the Web Audio API to bypass browser autoplay blocks. Upon user interaction, it instantiates an `AudioContext` which synthesizes a detuned yelping siren using two oscillators (Sawtooth and Square waves sweep-modulated at 5Hz) when pending alerts are present.
+#### 1. Geolocation Capture and Landmark Translation
+When a student triggers the SOS button, the browser calls the HTML5 Geolocation API:
+```javascript
+navigator.geolocation.getCurrentPosition(successCallback, errorCallback, {
+  enableHighAccuracy: true,
+  timeout: 5000,
+  maximumAge: 0
+});
+```
+This returns the student's exact latitude and longitude. The app then calculates the distance to pre-mapped landmarks on the FUL campuses using the Euclidean distance formula:
+$$d = \sqrt{(x_2 - x_1)^2 + (y_2 - y_1)^2}$$
+The closest landmark (e.g., SUG Secretariat, Hostel Block A, Adankolo Gate) is assigned to the alert document. This ensures that dispatchers receive both raw GPS coordinates and a clear, readable landmark description.
+
+#### 2. Base64 Media Serialization
+To attach audio recordings or camera photos without the overhead of heavy file-upload libraries, FULALERT serializes binary media files into Base64 strings.
+- **Audio Capture**: The app uses the browser's `MediaRecorder` API to capture microphone input, converts it to an array buffer, and encodes it to a Base64 data URI (e.g., `data:audio/ogg;base64,...`).
+- **Photo Capture**: Images captured by the device's camera are drawn onto an HTML5 canvas element and converted to a compressed JPEG data URI (e.g., `data:image/jpeg;base64,...`).
+These lightweight strings are embedded directly into the Firestore alert document, keeping the upload atomic and reducing database write delays.
+
+#### 3. Real-time Firestore Listeners
+To avoid high polling overhead, the dispatcher dashboards use Firestore's native WebSockets listener `onSnapshot`. The app sets up a real-time subscription to the `alerts` collection:
+```javascript
+const q = query(collection(db, 'alerts'));
+const unsubscribe = onSnapshot(q, (snapshot) => {
+  const alertsList = [];
+  snapshot.forEach(doc => alertsList.push({ id: doc.id, ...doc.data() }));
+  // Local sorting to bypass missing composite index limitations
+  alertsList.sort((a, b) => new Date(b.timestamp) - new Date(a.timestamp));
+  updateLocalState(alertsList);
+});
+```
+
+#### 4. Web Audio Siren Synthesizer
+To comply with browser security policies that block automated audio playback, the dashboard initializes a shared `AudioContext` on the dispatcher's first interaction with the page. When a new alert is received:
+- Two web oscillators are created: a **Sawtooth Wave** (representing security) and a **Square Wave** (providing the detuned chorus effect).
+- A low-frequency oscillator (LFO) sweep modulates the frequency of the oscillators between **600Hz and 1200Hz** at a rate of **5Hz** to create a yelping vehicle siren effect.
+- The sound plays automatically only when there are active, pending alerts matching the dispatcher's department.
+
+---
 
 ### Methodology: Step-by-Step System Execution
 
@@ -90,44 +135,54 @@ sequenceDiagram
     Dispatcher->>Cloud: Resolves Emergency (status: resolved) OR Logs False Alarm Strike
 ```
 
-#### Step 1: Student Incident Configuration
-The student opens the app on a mobile device and selects an emergency category: **Security**, **Medical**, **Fire**, or **DSA Welfare**. They can add an explanation or attach photos/voice recordings.
+#### Step 1: Student Account Authentication
+The student registers or logs in via Firebase Auth on their mobile device. The app caches the student's profile (name, matriculation number, phone number, blood type, and emergency contacts) in local storage for quick access.
 
-#### Step 2: SOS Transmission
-When the student holds the SOS button, the browser requests coordinates and constructs a payload, setting the status to `'pending'` and recording time strings. It then pushes the payload to the Firestore cloud database.
+#### Step 2: Emergency Configuration
+The student opens the app and selects an emergency category: **Security**, **Medical**, **Fire**, or **DSA Welfare**. They can add an optional description, record a short voice note, or take a photo of the scene.
 
-#### Step 3: Cloud Synchronization
-Firestore receives the payload and runs database security rules, synchronizing the document.
+#### Step 3: SOS Activation
+The student presses and holds the central "TRIGGER SOS" button for a three-second countdown. This countdown prevents accidental activations. Once completed, the app captures their GPS coordinates, maps them to the nearest FUL landmark, and packages this data with their profile information.
 
-#### Step 4: Dispatcher Alert & Audio Hook
-The desk dashboard listening to Firestore receives the new alert. If it matches the department's category (e.g. a `medical` alert at the Health Centre desk), the screen flashes red and the Web Audio synthesizer begins playing the emergency siren.
+#### Step 4: Database Transmission
+The app sanitizes the data payload to remove any `undefined` fields and writes the document to the Firestore `/alerts` collection with a status of `'pending'`.
 
-#### Step 5: Acknowledgment & Routing
-The dispatcher clicks **ACK** (Acknowledge) or **DISPATCH**. This writes a status update to the cloud, changing `'pending'` to `'responding'`. The student portal updates in real-time, showing that help is en-route. The dispatcher can also click a Google Maps link to open turn-by-turn driving directions to the student's exact coordinates.
+#### Step 5: Real-time Dispatch Sync
+The Firestore subscription fires on the dispatcher dashboards. If the alert's category matches the dispatcher's desk (e.g., `medical` alerts route to the Health Centre), the incident is added to their queue.
 
-#### Step 6: Field Action & Resolution
-Responders arrive at the scene. The dispatcher logs notes and clicks **RESOLVE** to close the case. If the incident was a prank, they click **FALSE ALARM**, which logs a strike on the student's registry account.
+#### Step 6: Siren Activation & Dispatch
+The dashboard's web audio synthesizer plays the emergency siren to alert the dispatcher. The dispatcher views the incident coordinates on the campus map and clicks **ACK** (Acknowledge) or **DISPATCH**. This updates the alert status in Firestore to `'responding'`.
+
+#### Step 7: Real-time Student Feedback
+The status change syncs back to the student's device. Their screen updates to show that responders are en-route, displaying the name of the assigned responding unit.
+
+#### Step 8: Resolution & Review
+Once responders resolve the emergency on-site, the dispatcher enters resolution notes and clicks **RESOLVE** to close the case. If the alert was a prank, the dispatcher clicks **FALSE ALARM**, which logs a strike against the student's matriculation record in the database.
 
 ---
 
 ## 3. Interface Explanation
 
 ### Landing Portal
-Upon loading the application, users are presented with a premium, clean landing gateway:
+The entry point of the application is a dark, responsive landing page designed for quick routing:
 - **Student Emergency Access**: A large red portal button directing students to sign in and request help.
 - **Officer Secure Login**: A secure entrance for official university responders to access the dispatcher desks.
 
 ### Student Safety Dashboard
 The Student Safety Portal is designed for quick, one-handed operation on mobile devices during stressful situations:
+- **Category Grid**: Large, color-coded buttons that allow the student to select the type of emergency:
+  - 🔴 **Security** (Red)
+  - 🟢 **Medical** (Green)
+  - 🟠 **Fire Safety** (Orange)
+  - 🟣 **DSA Welfare** (Purple)
 - **Central SOS Button**: A prominent, pulsing red button that triggers when held, showing a circular visual countdown to prevent accidental activation.
-- **Incident Categorizer**: Quick toggle icons for reporting Security Threats, Medical Emergencies, Fire Hazards, or Harassment.
 - **Active SOS Overlay**: When active, it displays a ticking timer, the name of the assigned responder unit, and status badges (e.g. "Awaiting Dispatch", "Responders En-Route").
 - **Media Attachment Badges**: Standard file upload prompts are replaced with interactive badges that preview photo uploads and allow on-the-spot voice note playback.
 
 ### Unified Officer Login Page
 This single, unified authentication gate manages access for all departments:
 - **Department Selector Dropdown**: Officers select their department (Security, Medical, Fire, DSA, or Central Command) from a dropdown list. The page's theme, icon badges, and placeholder credentials adapt automatically to the selection.
-- **Official Credentials Check**: Validates the Badge ID format (e.g., `SEC-101`) and checks the passcode. 
+- **Credentials Validation**: Validates the Badge ID format (e.g., `SEC-101`) and checks the passcode. 
 - **Department Master Key Authorization**: Officers can register new accounts securely by providing their official name, a secure university email address, and their department's master key.
 - **Session Security**: Active logins are cached in the browser's `sessionStorage` instead of `localStorage`. This allows responders to refresh the page without losing their login, but automatically logs them out when they close the browser tab to protect sensitive data.
 
@@ -135,7 +190,7 @@ This single, unified authentication gate manages access for all departments:
 The Responder Dashboard serves as the central command hub for dispatchers:
 - **Active Incident Queue (Sidebar)**: A chronological, color-coded list of incoming emergencies. It features bulk cleanup actions, including **🧹 Clear Resolved** (to remove resolved cases) and **🗑️ Delete All** (to clear all alerts).
 - **Interactive SVG Campus Map**: A vector map of the Federal University Lokoja campus. It plots real-time incident pins, showing a dotted dispatch route from the department's base station to the student's location.
-- **Turn-by-Turn Routing**: A link that opens Google Maps navigation directly to the student's coordinate location.
+- **Incident Detail Panel**: Displays the student's profile details, emergency contact information, and coordinates. It also provides links to open Google Maps navigation directly to the student's location.
 - **Stealth Audio Sniffer Widget**: Plays audio clips uploaded from the incident scene, complete with transcripts.
 - **Broadcast Control Tab**: A form that allows dispatchers to broadcast safety advisories and warnings (Information, Warning, or Critical Danger) to all students' portals.
 - **Hotspots Analytics Tab**: A canvas-based heatmap that plots historical coordinate data to show safety trends and high-density incident locations on campus.
