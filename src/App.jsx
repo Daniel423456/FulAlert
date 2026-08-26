@@ -183,7 +183,11 @@ export default function App() {
           lastLoginAt: firebaseUser.metadata.lastSignInTime || new Date().toLocaleString()
         };
         setCurrentUser(mergedUser);
-        localStorage.setItem('fulalert_auth_user', JSON.stringify(mergedUser));
+        if (profile.role === 'admin') {
+          sessionStorage.setItem('fulalert_auth_user', JSON.stringify(mergedUser));
+        } else {
+          localStorage.setItem('fulalert_auth_user', JSON.stringify(mergedUser));
+        }
       } else {
         // If logged in locally as an admin/officer, keep the session
         const storedLocal = localStorage.getItem('fulalert_auth_user');
@@ -191,8 +195,12 @@ export default function App() {
         const parsedLocal = storedLocal ? JSON.parse(storedLocal) : null;
         const parsedSession = storedSession ? JSON.parse(storedSession) : null;
 
-        if ((parsedLocal && parsedLocal.role === 'admin') || (parsedSession && parsedSession.role === 'admin')) {
-          // Do not log out officer
+        if (parsedSession && parsedSession.role === 'admin') {
+          setCurrentUser(parsedSession);
+        } else if (parsedLocal && parsedLocal.role === 'admin') {
+          setCurrentUser(parsedLocal);
+          sessionStorage.setItem('fulalert_auth_user', JSON.stringify(parsedLocal));
+          localStorage.removeItem('fulalert_auth_user'); // Clean up from local storage
         } else {
           setCurrentUser(null);
           localStorage.removeItem('fulalert_auth_user');
@@ -659,7 +667,7 @@ export default function App() {
                 deptKey={deptKey}
                 onLoginSuccess={(officerUser) => {
                   setCurrentUser(officerUser);
-                  localStorage.setItem('fulalert_auth_user', JSON.stringify(officerUser));
+                  sessionStorage.setItem('fulalert_auth_user', JSON.stringify(officerUser));
                 }}
                 onBackToHome={() => navigateTo('landing')}
               />
