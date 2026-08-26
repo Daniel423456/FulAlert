@@ -83,7 +83,9 @@ export default function AdminDashboard({
   CAMPUS_LOCATIONS,
   currentUser,
   onOpenAuth,
-  onLogout
+  onLogout,
+  bypassFirebase = false,
+  setBypassFirebase
 }) {
   // Safely compute active department desk from logged-in officer
   const activeDesk = currentUser?.desk || 'security';
@@ -190,7 +192,9 @@ export default function AdminDashboard({
     if (newStatus === 'resolved') {
       cloudUpdates.notes = 'Resolved by responder.';
     }
-    updateAlertInCloud(id, cloudUpdates);
+    if (!bypassFirebase) {
+      updateAlertInCloud(id, cloudUpdates);
+    }
   };
 
   // Add Responder Field Note & Explanation
@@ -211,11 +215,13 @@ export default function AdminDashboard({
     }));
     
     // Sync notes to Firebase Cloud Database
-    const targetAlert = alerts.find(a => a.id === alertId);
-    if (targetAlert) {
-      updateAlertInCloud(alertId, {
-        responderNotes: [...(targetAlert.responderNotes || []), newNote]
-      });
+    if (!bypassFirebase) {
+      const targetAlert = alerts.find(a => a.id === alertId);
+      if (targetAlert) {
+        updateAlertInCloud(alertId, {
+          responderNotes: [...(targetAlert.responderNotes || []), newNote]
+        });
+      }
     }
 
     setResponderNoteText('');
@@ -253,7 +259,9 @@ export default function AdminDashboard({
     }
     setAlerts(prev => prev.filter(a => a.id !== alertId));
     setSelectedAlertId(null);
-    deleteAlertFromCloud(alertId);
+    if (!bypassFirebase) {
+      deleteAlertFromCloud(alertId);
+    }
     alert('Alert deleted successfully.');
   };
 
@@ -263,7 +271,9 @@ export default function AdminDashboard({
       return;
     }
     setBroadcasts(prev => prev.filter(b => b.id !== broadcastId));
-    deleteBroadcastFromCloud(broadcastId);
+    if (!bypassFirebase) {
+      deleteBroadcastFromCloud(broadcastId);
+    }
     alert('Broadcast deleted successfully.');
   };
 
@@ -275,7 +285,9 @@ export default function AdminDashboard({
     if (setUsers) {
       setUsers(prev => prev.filter(u => (u.uid === userId || u.matric === userId) ? false : true));
     }
-    deleteUserFromCloud(userId);
+    if (!bypassFirebase) {
+      deleteUserFromCloud(userId);
+    }
     alert('User account deleted successfully.');
   };
 
@@ -313,9 +325,11 @@ export default function AdminDashboard({
     setSelectedAlertId(null);
 
     // Delete from Firestore
-    targetIds.forEach(id => {
-      deleteAlertFromCloud(id);
-    });
+    if (!bypassFirebase) {
+      targetIds.forEach(id => {
+        deleteAlertFromCloud(id);
+      });
+    }
 
     alert(`Successfully deleted ${targetIds.length} alerts.`);
   };
@@ -334,7 +348,9 @@ export default function AdminDashboard({
     };
 
     setBroadcasts(prev => [newBroadcast, ...prev]);
-    pushBroadcastToCloud(newBroadcast);
+    if (!bypassFirebase) {
+      pushBroadcastToCloud(newBroadcast);
+    }
     setBcTitle('');
     setBcMessage('');
     alert('Campus Broadcast Sent Successfully!');

@@ -135,7 +135,9 @@ export const DEPARTMENT_CONFIGS = {
 export default function DepartmentLoginPage({ 
   deptKey = 'security', 
   onLoginSuccess, 
-  onBackToHome 
+  onBackToHome,
+  bypassFirebase = false,
+  users = []
 }) {
   const [selectedDeptKey, setSelectedDeptKey] = useState(deptKey || 'security');
 
@@ -233,6 +235,26 @@ export default function DepartmentLoginPage({
       return;
     }
 
+    if (bypassFirebase) {
+      const localProfile = {
+        name: regName.trim(),
+        badgeId: formattedBadge,
+        desk: dept.id,
+        unit: dept.name,
+        role: 'admin',
+        password: regPassword.trim(),
+        email: regEmail.trim().toLowerCase(),
+        strikes: 0
+      };
+      
+      setSuccessMsg('✅ Authorized Responder Registered! (Local Demo Mode)');
+      setTimeout(() => {
+        setIsLoading(false);
+        onLoginSuccess(localProfile);
+      }, 1500);
+      return;
+    }
+
     try {
       // 4. Register in Firebase Auth & Create Firestore Profile
       const { user, profile } = await registerUserWithEmail(regEmail.trim(), regPassword.trim(), {
@@ -276,7 +298,23 @@ export default function DepartmentLoginPage({
     const emailToAuth = `${formattedBadge.toLowerCase()}@fulalert.edu.ng`;
 
     // 1. Attempt Cloud Sign-in securely via Firebase Auth
-    if (auth && db) {
+    if (bypassFirebase) {
+      const matchedUser = users.find(u => u.badgeId === formattedBadge && u.role === 'admin');
+      if (matchedUser) {
+        if (matchedUser.password === password.trim()) {
+          setSuccessMsg(`✅ Verified! Access Granted to ${dept.name} Console... (Local Demo)`);
+          setTimeout(() => {
+            setIsLoading(false);
+            onLoginSuccess(matchedUser);
+          }, 600);
+          return;
+        } else {
+          setErrorMsg(`❌ Authentication Failed: Incorrect password/passcode.`);
+          setIsLoading(false);
+          return;
+        }
+      }
+    } else if (auth && db) {
       try {
         const userCredential = await signInWithEmailAndPassword(auth, emailToAuth, password.trim());
         const user = userCredential.user;

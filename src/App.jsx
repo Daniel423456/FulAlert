@@ -159,9 +159,13 @@ export default function App() {
     return parsed;
   });
 
+  const [bypassFirebase, setBypassFirebase] = useState(() => {
+    return localStorage.getItem('fulalert_bypass_firebase') === 'true';
+  });
+
   const [users, setUsers] = useState(() => {
     const saved = localStorage.getItem('fulalert_users');
-    return saved ? JSON.parse(saved) : [];
+    return saved ? JSON.parse(saved) : INITIAL_USERS;
   });
 
   // Handle URL query parameters for Firebase Password Reset links
@@ -250,7 +254,7 @@ export default function App() {
 
   const [alerts, setAlerts] = useState(() => {
     const saved = localStorage.getItem('fulalert_alerts');
-    return saved ? JSON.parse(saved) : [];
+    return saved ? JSON.parse(saved) : INITIAL_ALERTS;
   });
 
   const [broadcasts, setBroadcasts] = useState(() => {
@@ -282,8 +286,33 @@ export default function App() {
     return () => window.removeEventListener('hashchange', handleHashChange);
   }, []);
 
+  // Persistent bypass setting
+  useEffect(() => {
+    localStorage.setItem('fulalert_bypass_firebase', bypassFirebase ? 'true' : 'false');
+  }, [bypassFirebase]);
+
   // Multi-tab and Firebase Cloud Database Real-time Sync
   useEffect(() => {
+    if (bypassFirebase) {
+      // Force initial load from local storage
+      const localAlerts = localStorage.getItem('fulalert_alerts');
+      const localBc = localStorage.getItem('fulalert_broadcasts');
+      const localUsers = localStorage.getItem('fulalert_users');
+      
+      setAlerts(localAlerts ? JSON.parse(localAlerts) : INITIAL_ALERTS);
+      setBroadcasts(localBc ? JSON.parse(localBc) : [
+        {
+          id: 'bc-1',
+          title: 'Inclement Weather Warning',
+          message: 'Heavy rain and strong winds expected on campus this evening. Secure all hostel windows.',
+          timestamp: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
+          category: 'warning'
+        }
+      ]);
+      setUsers(localUsers ? JSON.parse(localUsers) : INITIAL_USERS);
+      return () => {};
+    }
+
     // 1. Firebase Cloud Real-time Alerts Listener
     const unsubscribeCloudAlerts = subscribeToCloudAlerts((cloudAlerts) => {
       setAlerts(cloudAlerts);
@@ -569,9 +598,26 @@ export default function App() {
               ← Exit to Home
             </button>
 
+            <button 
+              onClick={() => setBypassFirebase(prev => !prev)}
+              style={{
+                fontSize: '0.72rem',
+                padding: '6px 12px',
+                background: bypassFirebase ? 'rgba(245, 158, 11, 0.15)' : '#1b223c',
+                border: bypassFirebase ? '1px solid #f59e0b' : '1px solid var(--border-color)',
+                borderRadius: '8px',
+                color: bypassFirebase ? '#fbbf24' : 'var(--text-secondary)',
+                fontWeight: 600,
+                marginRight: '12px',
+                cursor: 'pointer'
+              }}
+            >
+              {bypassFirebase ? '🔌 Local Demo Mode' : '⚡ Live Cloud Mode'}
+            </button>
+
             <div className="status-badge">
-              <span className="status-dot"></span>
-              {currentView === 'student' ? 'Client Active' : 'Command Sync Active'}
+              <span className="status-dot" style={{ backgroundColor: bypassFirebase ? '#f59e0b' : '#10b981' }}></span>
+              {bypassFirebase ? 'Local Sync' : (currentView === 'student' ? 'Client Active' : 'Command Sync Active')}
             </div>
           </div>
         </header>
@@ -584,6 +630,8 @@ export default function App() {
           currentUser={currentUser} 
           onOpenAuth={handleOpenAuth} 
           onLogout={handleLogout} 
+          bypassFirebase={bypassFirebase}
+          setBypassFirebase={setBypassFirebase}
         />
       ) : currentView === 'student' ? (
         /* Student view full screen wrapper */
@@ -602,6 +650,7 @@ export default function App() {
               setWalkWithMeActive={setWalkWithMeActive}
               walkWithMeCoords={walkWithMeCoords}
               CAMPUS_LOCATIONS={CAMPUS_LOCATIONS}
+              bypassFirebase={bypassFirebase}
             />
           ) : (
             <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', height: '100%', padding: '32px', textAlign: 'center' }}>
@@ -650,8 +699,18 @@ export default function App() {
                 onLoginSuccess={(officerUser) => {
                   setCurrentUser(officerUser);
                   sessionStorage.setItem('fulalert_auth_user', JSON.stringify(officerUser));
+                  if (bypassFirebase) {
+                    setUsers(prev => {
+                      if (!prev.some(u => u.badgeId === officerUser.badgeId)) {
+                        return [...prev, officerUser];
+                      }
+                      return prev;
+                    });
+                  }
                 }}
                 onBackToHome={() => navigateTo('landing')}
+                bypassFirebase={bypassFirebase}
+                users={users}
               />
             );
           }
@@ -671,6 +730,8 @@ export default function App() {
                 setCurrentUser={setCurrentUser}
                 onOpenAuth={handleOpenAuth}
                 onLogout={handleLogout}
+                bypassFirebase={bypassFirebase}
+                setBypassFirebase={setBypassFirebase}
               />
             </div>
           );
@@ -686,6 +747,7 @@ export default function App() {
         targetPortal={authTarget}
         users={users}
         setUsers={setUsers}
+        bypassFirebase={bypassFirebase}
       />
 
       {/* Progressive Web App Install Prompt */}

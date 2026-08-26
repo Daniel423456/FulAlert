@@ -35,7 +35,8 @@ export default function AuthModal({
   initialMode = 'signin', // 'signin', 'signup', 'forgot', 'resetPassword'
   targetPortal = 'student', // 'student' or 'admin'
   users = [],
-  setUsers
+  setUsers,
+  bypassFirebase = false
 }) {
   const [mode, setMode] = useState(initialMode); // 'signin', 'signup', 'forgot', 'resetPassword'
   const [role, setRole] = useState(targetPortal === 'admin' ? 'admin' : 'student'); // 'student' or 'admin'
@@ -173,6 +174,32 @@ export default function AuthModal({
         onClose();
       }, 500);
     } else {
+      if (bypassFirebase) {
+        let inputCred = identifier.trim().toLowerCase();
+        const matchedStudent = users.find(u => 
+          (u.email && u.email.toLowerCase() === inputCred) ||
+          (u.matric && u.matric.toLowerCase() === inputCred) ||
+          (u.phone && u.phone.replace(/[^0-9]/g, '') === inputCred.replace(/[^0-9]/g, ''))
+        );
+        if (matchedStudent) {
+          if (matchedStudent.password === password.trim()) {
+            setSuccessMsg(`✅ Welcome back, ${matchedStudent.name}! (Local Demo)`);
+            setTimeout(() => {
+              setIsLoading(false);
+              onAuthSuccess(matchedStudent, 'student');
+              onClose();
+            }, 500);
+          } else {
+            setErrorMsg('❌ Incorrect password.');
+            setIsLoading(false);
+          }
+        } else {
+          setErrorMsg('❌ Account not found. (Local Demo Mode)');
+          setIsLoading(false);
+        }
+        return;
+      }
+
       // Student / Faculty Login via Firebase Auth
       try {
         let emailToAuthenticate = identifier.trim().toLowerCase();
@@ -264,6 +291,37 @@ export default function AuthModal({
       if (formData.password !== formData.confirmPassword) {
         setErrorMsg('❌ Passwords do not match.');
         setIsLoading(false);
+        return;
+      }
+
+      if (bypassFirebase) {
+        const newUser = {
+          name: formData.name.trim(),
+          matric: formData.matric.trim().toUpperCase(),
+          phone: formData.phone.trim(),
+          allergies: formData.allergies.trim(),
+          department: formData.department,
+          residence: formData.residence,
+          emergencyContact: `${formData.emergencyContactName || 'Next of Kin'} (${formData.emergencyContactPhone || formData.phone})`,
+          email: formData.email.trim().toLowerCase(),
+          password: formData.password,
+          role: 'user',
+          strikes: 0
+        };
+
+        if (users.some(u => u.matric === newUser.matric || u.email === newUser.email)) {
+          setErrorMsg('❌ This student profile is already registered locally.');
+          setIsLoading(false);
+          return;
+        }
+
+        setUsers(prev => [...prev, newUser]);
+        setSuccessMsg('✅ Registered successfully! (Local Demo Mode)');
+        setTimeout(() => {
+          setIsLoading(false);
+          onAuthSuccess(newUser, 'student');
+          onClose();
+        }, 1000);
         return;
       }
 

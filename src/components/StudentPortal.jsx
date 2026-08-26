@@ -108,7 +108,8 @@ export default function StudentPortal({
   walkWithMeActive,
   setWalkWithMeActive,
   walkWithMeCoords,
-  CAMPUS_LOCATIONS
+  CAMPUS_LOCATIONS,
+  bypassFirebase = false
 }) {
   const [activeTab, setActiveTab] = useState('sos'); // 'sos', 'walk', 'contacts', 'history', 'profile'
   const [activeCategory, setActiveCategory] = useState('security'); // default
@@ -327,7 +328,9 @@ export default function StudentPortal({
     } catch (err) {}
 
     // Push real-time distress signal to Firebase Cloud Database
-    pushAlertToCloud(newAlert);
+    if (!bypassFirebase) {
+      pushAlertToCloud(newAlert);
+    }
 
     // Silent Haptic SOS Feedback for student safety (sound plays on Admin dispatch desk)
     audioAlerts.vibrateSOS();
@@ -355,7 +358,9 @@ export default function StudentPortal({
     }));
 
     // Sync resolution to Firebase Cloud Database
-    updateAlertInCloud(activeAlertId, { status: 'resolved' });
+    if (!bypassFirebase) {
+      updateAlertInCloud(activeAlertId, { status: 'resolved' });
+    }
   };
 
   // Submit Feedback

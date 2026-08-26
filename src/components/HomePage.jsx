@@ -18,7 +18,7 @@ import {
   ChevronRight
 } from 'lucide-react';
 
-export default function HomePage({ onNavigate, currentUser, onOpenAuth, onLogout }) {
+export default function HomePage({ onNavigate, currentUser, onOpenAuth, onLogout, bypassFirebase, setBypassFirebase }) {
   const hotlines = [
     { title: 'Campus Security', phone: '+234 803 111 0001', icon: Shield, color: '#ef4444' },
     { title: 'Health Centre', phone: '+234 803 222 0002', icon: HeartPulse, color: '#10b981' },
@@ -96,6 +96,23 @@ export default function HomePage({ onNavigate, currentUser, onOpenAuth, onLogout
         </div>
 
         <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+          {/* Firebase Bypass Toggle */}
+          <button 
+            onClick={() => setBypassFirebase(prev => !prev)}
+            style={{
+              fontSize: '0.72rem',
+              padding: '8px 14px',
+              background: bypassFirebase ? 'rgba(245, 158, 11, 0.15)' : 'var(--bg-secondary)',
+              border: bypassFirebase ? '1px solid #f59e0b' : '1px solid var(--border-color)',
+              borderRadius: '10px',
+              color: bypassFirebase ? '#fbbf24' : 'var(--text-secondary)',
+              fontWeight: 700,
+              cursor: 'pointer'
+            }}
+          >
+            {bypassFirebase ? '🔌 Local Demo Mode' : '⚡ Live Cloud Mode'}
+          </button>
+
           {currentUser ? (
             <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
               <div style={{ 
