@@ -273,29 +273,15 @@ export default function DepartmentLoginPage({
     }
 
     const formattedBadge = badgeId.trim().toUpperCase();
+    const emailToAuth = `${formattedBadge.toLowerCase()}@fulalert.edu.ng`;
 
-    // 1. Check if Badge ID belongs to a registered Firebase Auth admin in Firestore
-    let emailToAuth = null;
-    try {
-      if (db) {
-        const q = query(collection(db, 'users'), where('badgeId', '==', formattedBadge), where('role', '==', 'admin'));
-        const querySnapshot = await getDocs(q);
-        if (!querySnapshot.empty) {
-          const userDoc = querySnapshot.docs[0].data();
-          emailToAuth = userDoc.email;
-        }
-      }
-    } catch (err) {
-      console.warn("Failed to check Firestore admin registration:", err);
-    }
-
-    // 2. If it is a registered cloud admin, sign them in securely via Firebase Auth
-    if (emailToAuth && auth) {
+    // 1. Attempt Cloud Sign-in securely via Firebase Auth
+    if (auth && db) {
       try {
         const userCredential = await signInWithEmailAndPassword(auth, emailToAuth, password.trim());
         const user = userCredential.user;
         
-        // Fetch fresh profile
+        // Fetch profile (authorized read since the user is now signed in!)
         const userDocRef = doc(db, 'users', user.uid);
         const userDoc = await getDoc(userDocRef);
         if (userDoc.exists()) {
@@ -308,13 +294,18 @@ export default function DepartmentLoginPage({
           return;
         }
       } catch (err) {
-        setErrorMsg(`❌ Authentication Failed: Incorrect password/passcode.`);
-        setIsLoading(false);
-        return;
+        // If they enter the wrong password for a registered account, fail immediately
+        if (err.code === 'auth/wrong-password') {
+          setErrorMsg(`❌ Authentication Failed: Incorrect password/passcode.`);
+          setIsLoading(false);
+          return;
+        }
+        // If it is any other error (like user-not-found), fall through to Legacy check
+        console.log("Firebase auth fallback to legacy dictionary:", err.message);
       }
     }
 
-    // 3. Fallback to Legacy Predefined Dictionary Verification
+    // 2. Legacy Predefined Dictionary Verification Fallback
     const isOfficialPasscode = password.trim() === deptCreds.passcode;
     const isOfficialBadge = deptCreds.validBadges.includes(formattedBadge);
 
