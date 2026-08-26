@@ -121,8 +121,16 @@ const INITIAL_USERS = [
 export default function App() {
   const [currentView, setCurrentView] = useState(() => {
     const hash = window.location.hash;
+    const path = window.location.pathname;
+
     if (hash.startsWith('#/admin')) return hash.replace('#/', '');
-    if (hash === '#/student') return 'student';
+    if (path.startsWith('/admin')) {
+      // Return sub-route, clean trailing slashes
+      const subPath = path.substring(1).replace(/\/$/, ''); // e.g. 'admin/security'
+      return subPath || 'admin';
+    }
+
+    if (hash === '#/student' || path.startsWith('/student')) return 'student';
     return 'landing';
   });
 
@@ -627,11 +635,10 @@ export default function App() {
         (() => {
           // Determine the department key from currentView
           let deptKey = 'all';
-          if (currentView === 'admin/security') deptKey = 'security';
-          else if (currentView === 'admin/medical') deptKey = 'medical';
-          else if (currentView === 'admin/fire') deptKey = 'fire';
-          else if (currentView === 'admin/dsa') deptKey = 'harassment';
-          else if (currentView === 'admin/central' || currentView === 'admin') deptKey = 'all';
+          if (currentView.includes('security')) deptKey = 'security';
+          else if (currentView.includes('medical')) deptKey = 'medical';
+          else if (currentView.includes('fire')) deptKey = 'fire';
+          else if (currentView.includes('dsa') || currentView.includes('welfare')) deptKey = 'harassment';
 
           // Check if officer is authenticated for this department
           const isDeptAuthenticated = currentUser && currentUser.role === 'admin' && (deptKey === 'all' || currentUser.desk === deptKey || currentUser.desk === 'all');
