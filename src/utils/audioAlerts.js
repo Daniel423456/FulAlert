@@ -100,13 +100,17 @@ class AudioAlertSystem {
         if (!this.isSirenPlaying) return;
         const now = ctx.currentTime;
         
-        // Fast, high-urgency piercing wail sweep between 600Hz and 1100Hz
+        // Anchor the frequency before starting the ramp to prevent Web Audio glitched clicks
         if (phase === 0) {
-          osc1.frequency.linearRampToValueAtTime(1100, now + 0.25);
-          osc2.frequency.linearRampToValueAtTime(1105, now + 0.25);
+          osc1.frequency.setValueAtTime(600, now);
+          osc2.frequency.setValueAtTime(605, now);
+          osc1.frequency.linearRampToValueAtTime(1100, now + 0.28);
+          osc2.frequency.linearRampToValueAtTime(1105, now + 0.28);
         } else {
-          osc1.frequency.linearRampToValueAtTime(600, now + 0.25);
-          osc2.frequency.linearRampToValueAtTime(605, now + 0.25);
+          osc1.frequency.setValueAtTime(1100, now);
+          osc2.frequency.setValueAtTime(1105, now);
+          osc1.frequency.linearRampToValueAtTime(600, now + 0.28);
+          osc2.frequency.linearRampToValueAtTime(605, now + 0.28);
         }
         phase = (phase + 1) % 2;
       }, 300);

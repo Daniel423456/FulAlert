@@ -278,42 +278,17 @@ export default function App() {
   useEffect(() => {
     // 1. Firebase Cloud Real-time Alerts Listener
     const unsubscribeCloudAlerts = subscribeToCloudAlerts((cloudAlerts) => {
-      setAlerts(prev => {
-        // Merge cloud alerts with local alerts preserving latest status
-        const mergedMap = new Map();
-        [...cloudAlerts, ...prev].forEach(item => {
-          if (!mergedMap.has(item.id)) {
-            mergedMap.set(item.id, item);
-          }
-        });
-        return Array.from(mergedMap.values());
-      });
+      setAlerts(cloudAlerts);
     });
 
     // 2. Firebase Cloud Real-time Broadcasts Listener
     const unsubscribeCloudBc = subscribeToCloudBroadcasts((cloudBc) => {
-      setBroadcasts(prev => {
-        const mergedMap = new Map();
-        [...cloudBc, ...prev].forEach(item => {
-          if (!mergedMap.has(item.id)) {
-            mergedMap.set(item.id, item);
-          }
-        });
-        return Array.from(mergedMap.values());
-      });
+      setBroadcasts(cloudBc);
     });
 
     // 3. Firebase Cloud Real-time Users Listener (Syncs registered accounts across all devices)
     const unsubscribeCloudUsers = subscribeToCloudUsers((cloudUsers) => {
-      setUsers(prev => {
-        const mergedMap = new Map();
-        [...cloudUsers, ...prev].forEach(item => {
-          if (!mergedMap.has(item.matric)) {
-            mergedMap.set(item.matric, item);
-          }
-        });
-        return Array.from(mergedMap.values());
-      });
+      setUsers(cloudUsers);
     });
 
     // 4. Multi-tab fallback via storage events
