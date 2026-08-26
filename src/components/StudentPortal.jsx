@@ -785,10 +785,10 @@ export default function StudentPortal({
                   ) : (
                     <>
                       <h2 style={{ fontSize: '1.4rem', color: selectedCategoryColor?.color }}>
-                        {activeAlert?.category.toUpperCase()} ALERT ACTIVE
+                        {activeAlert?.category.toUpperCase()} Emergency Active
                       </h2>
                       <p style={{ fontSize: '0.8rem', color: 'var(--text-secondary)' }}>
-                        {activeAlert?.isAnonymous ? 'Anonymous SOS Routed.' : `Routed to ${activeAlert?.assignedResponder}.`} Live GPS tracking active.
+                        {activeAlert?.isAnonymous ? 'Your anonymous request has been sent.' : `We sent your details to the ${activeAlert?.assignedResponder}.`} Staying updated...
                       </p>
 
                       {activeAlert?.attachmentUrl && (
@@ -855,9 +855,9 @@ export default function StudentPortal({
 
                       {activeAlert?.escalated && (
                         <div style={{ background: 'rgba(239, 68, 68, 0.1)', border: '1px solid rgba(239, 68, 68, 0.2)', padding: '10px', borderRadius: '8px', width: '100%', fontSize: '0.75rem', color: 'var(--accent-sos)' }}>
-                          <strong>⚠️ Auto-Escalation Fired</strong>
+                          <strong>⚠️ Routing to Central Security</strong>
                           <p style={{ fontSize: '0.65rem', color: 'var(--text-secondary)', marginTop: '2px' }}>
-                            Responder failed to respond, routing alert to Security command!
+                            We haven't received a response from the desk yet. Sending your request directly to the Central Command safety station.
                           </p>
                         </div>
                       )}

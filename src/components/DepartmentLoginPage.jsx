@@ -419,7 +419,7 @@ export default function DepartmentLoginPage({
           </div>
           <div>
             <span style={{ fontSize: '0.68rem', fontWeight: 800, color: dept.themeColor, textTransform: 'uppercase', letterSpacing: '0.08em' }}>
-              SECURE DEPARTMENT ACCESS
+              Officer & Responder Portal
             </span>
             <h2 style={{ fontSize: '1.25rem', fontWeight: 800, color: '#fff', margin: '2px 0 0 0' }}>
               {dept.name}

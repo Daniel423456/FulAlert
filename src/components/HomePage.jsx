@@ -31,26 +31,26 @@ export default function HomePage({ onNavigate, currentUser, onOpenAuth, onLogout
   const features = [
     {
       icon: ShieldAlert,
-      title: 'Hold-to-Confirm SOS',
-      desc: '3-second intentional touch trigger prevents accidental false alarms while ensuring instantaneous routing to security posts.',
+      title: 'Quick SOS Button',
+      desc: 'Press and hold the SOS button for 3 seconds to alert safety officers. The countdown prevents accidental false alerts.',
       color: '#ef4444'
     },
     {
       icon: Navigation,
-      title: 'Real-Time GPS Escort',
-      desc: 'Share live GPS movement paths on interactive multi-layer maps with trusted friends during late-night walks across campus.',
+      title: 'Walk With Me',
+      desc: 'Share your live campus walk path with close friends or course mates so they can keep an eye on you at night.',
       color: '#0052d4'
     },
     {
       icon: Radio,
-      title: 'Stealth Audio Sniffing',
-      desc: 'Silent alarm suppresses screen light and audio alarms, capturing situational audio clips to keep responders fully briefed.',
+      title: 'Stealth SOS Mode',
+      desc: 'Send silent alerts to security when you are in danger, capturing audio updates without sounding alarms on your phone.',
       color: '#10b981'
     },
     {
       icon: MapPin,
-      title: 'Unified Command Desk',
-      desc: 'Real-time multi-incident map plotting, student medical profiles, turn-by-turn routing, and campus-wide safety broadcasts.',
+      title: 'Direct Dispatch Desks',
+      desc: 'Alerts route straight to Security Patrol, University Health Centre, Fire Safety, or DSA Welfare desks based on your emergency.',
       color: '#f97316'
     }
   ];
@@ -58,18 +58,18 @@ export default function HomePage({ onNavigate, currentUser, onOpenAuth, onLogout
   const steps = [
     {
       step: '01',
-      title: 'Trigger Distress Signal',
-      desc: 'Select Security, Medical, Fire, or Harassment. Hold the SOS button or activate Silent Stealth Mode.'
+      title: 'Choose Emergency Type',
+      desc: 'Open the Student SOS portal, select the category you need (Security, Medical, Fire, Welfare) and hold the button.'
     },
     {
       step: '02',
-      title: 'Instant Automated Dispatch',
-      desc: 'Your live GPS coordinates, medical profile (allergies), and contacts are relayed directly to on-duty responders.'
+      title: 'Information Relayed',
+      desc: 'Your matric number, phone, location coordinates, and allergies/notes go directly to the responding team.'
     },
     {
       step: '03',
-      title: 'Track Help in Real-Time',
-      desc: 'Watch responder acknowledgement and en-route status update live on your phone until safety is secured.'
+      title: 'Help is En-Route',
+      desc: 'See exactly when the responder acknowledges your request, dispatches a unit, and arrives at your location.'
     }
   ];
 
@@ -91,7 +91,7 @@ export default function HomePage({ onNavigate, currentUser, onOpenAuth, onLogout
           </div>
           <div>
             <div style={{ fontSize: '1rem', fontWeight: 800, letterSpacing: '0.02em' }}>FULALERT</div>
-            <div style={{ fontSize: '0.55rem', color: 'var(--brand-orange)', fontWeight: 700 }}>NOTIFY • INFORM • PROTECT</div>
+            <div style={{ fontSize: '0.55rem', color: 'var(--brand-orange)', fontWeight: 700 }}>CAMPUS EMERGENCY LINK</div>
           </div>
         </div>
 
@@ -168,23 +168,22 @@ export default function HomePage({ onNavigate, currentUser, onOpenAuth, onLogout
               />
             </div>
             <div style={{ fontSize: '0.88rem', fontWeight: 800, color: 'var(--brand-orange)', letterSpacing: '0.14em', textTransform: 'uppercase', textShadow: '0 0 20px rgba(249, 115, 22, 0.4)' }}>
-              — NOTIFY • INFORM • PROTECT —
+              — FUL CAMPUS SAFETY —
             </div>
           </div>
 
           <div className="live-status-pill" style={{ marginTop: '8px' }}>
             <span className="live-pulse-dot"></span>
-            <span>FULALERT Dispatch Network • 24/7 Operations Active</span>
+            <span>Federal University Lokoja Safety Link • Active</span>
           </div>
 
           <h1 className="hero-title" style={{ marginTop: '6px' }}>
-            Campus Emergency Response <br />
-            <span className="gradient-text">& Real-Time Protection</span>
+            FUL Emergency Safety Link <br />
+            <span className="gradient-text">& Dispatch Portal</span>
           </h1>
 
           <p className="hero-subtitle">
-            An advanced emergency alert, GPS escort, and unified responder routing platform 
-            built to protect students and staff across university hostels, lecture halls, and walkways.
+            Get quick emergency help when you need it. Connect directly to FUL security guards, the school clinic, hostel safety wardens, or student welfare officers.
           </p>
 
           <div className="hero-cta-group">
