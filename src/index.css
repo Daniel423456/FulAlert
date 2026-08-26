@@ -1,49 +1,49 @@
 @import url('https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700;800;900&family=Plus+Jakarta+Sans:wght@300;400;500;600;700;800&display=swap');
 
 :root {
-  /* Brand Palette from Official FULALERT Shield & Bell Logo */
-  --brand-blue: #0052d4;          /* Shield Royal Blue */
-  --brand-blue-light: #2563eb;
-  --brand-blue-gradient: linear-gradient(135deg, #0052d4 0%, #002b80 100%);
-  --brand-orange: #f97316;        /* Alert Bell Orange */
-  --brand-orange-gradient: linear-gradient(135deg, #f97316 0%, #ea580c 100%);
+  /* Brand Palette: Customized to Federal University Lokoja (FUL) Official Colors */
+  --brand-blue: #006837;          /* FUL Forest Green */
+  --brand-blue-light: #10b981;    /* FUL Emerald Accent */
+  --brand-blue-gradient: linear-gradient(135deg, #006837 0%, #004524 100%);
+  --brand-orange: #f59e0b;        /* FUL Gold / Warning Yellow */
+  --brand-orange-gradient: linear-gradient(135deg, #f59e0b 0%, #d97706 100%);
   --brand-gold: #fbbf24;          /* Alert Waves Amber */
 
-  --bg-primary: #070b19;          /* Deep Midnight Navy Canvas */
-  --bg-secondary: #0d142c;        /* Sleek Navy Panel */
-  --bg-tertiary: #131c3d;         /* Elevated Card Navy */
+  --bg-primary: #080d0a;          /* Charcoal Black with Forest-Green undertones */
+  --bg-secondary: #0e1511;        /* Deep Slate Green Panel */
+  --bg-tertiary: #16211b;         /* Elevated Card Green-Slate */
   
   --text-primary: #ffffff;
-  --text-secondary: #94a3b8;
-  --text-muted: #64748b;
+  --text-secondary: #94a89d;      /* Muted Sage Green */
+  --text-muted: #647a6d;
   
   /* Brand Alerts & Status */
   --accent-sos: #ef4444;          /* Emergency SOS Red */
   --accent-sos-glow: rgba(239, 68, 68, 0.45);
   
-  --color-security: #0052d4;      /* Brand Security Blue */
+  --color-security: #006837;      /* FUL Security Green */
   --color-medical: #10b981;       /* Health Center Green */
   --color-fire: #f97316;          /* Fire / Alert Orange */
   --color-harass: #d946ef;        /* Harassment Pink/Purple */
   --color-other: #0284c7;         /* Sky Support Blue */
   
   --status-pending: #f59e0b;
-  --status-ack: #0052d4;
+  --status-ack: #006837;
   --status-responding: #6366f1;
   --status-resolved: #10b981;
   
-  --border-color: rgba(59, 130, 246, 0.16);
-  --border-hover: rgba(59, 130, 246, 0.45);
+  --border-color: rgba(16, 185, 129, 0.12);
+  --border-hover: rgba(16, 185, 129, 0.38);
   
   /* Fonts */
   --font-display: 'Outfit', sans-serif;
   --font-sans: 'Plus Jakarta Sans', sans-serif;
   
   /* Shadows & Glass */
-  --glass-bg: rgba(13, 20, 44, 0.85);
-  --glass-border: rgba(59, 130, 246, 0.2);
-  --card-shadow: 0 12px 40px 0 rgba(0, 0, 0, 0.6), 0 0 20px rgba(0, 82, 212, 0.08);
-  --neon-glow: 0 0 25px rgba(0, 82, 212, 0.35);
+  --glass-bg: rgba(14, 21, 17, 0.85);
+  --glass-border: rgba(16, 185, 129, 0.2);
+  --card-shadow: 0 12px 40px 0 rgba(0, 0, 0, 0.6), 0 0 20px rgba(0, 104, 55, 0.05);
+  --neon-glow: 0 0 25px rgba(0, 104, 55, 0.2);
 }
 
 * {
@@ -111,7 +111,7 @@ input:focus, select:focus, textarea:focus {
   display: flex;
   flex-direction: column;
   min-height: 100vh;
-  background-image: radial-gradient(circle at 50% -20%, #0d1a45 0%, var(--bg-primary) 70%);
+  background-image: radial-gradient(circle at 50% -20%, #0e2518 0%, var(--bg-primary) 70%);
 }
 
 /* Header */
@@ -120,7 +120,7 @@ input:focus, select:focus, textarea:focus {
   align-items: center;
   justify-content: space-between;
   padding: 14px 32px;
-  background: rgba(7, 11, 25, 0.85);
+  background: rgba(8, 13, 10, 0.85);
   backdrop-filter: blur(14px);
   border-bottom: 1px solid var(--border-color);
   z-index: 100;
