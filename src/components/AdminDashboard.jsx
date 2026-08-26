@@ -363,6 +363,7 @@ export default function AdminDashboard({
 
       // Plot coordinates
       alerts.forEach(alert => {
+        if (!alert.coordinates) return;
         const { x, y } = alert.coordinates;
         // Scaled coordinates mapping
         const scaleX = (x / 1000) * canvas.width;
@@ -761,14 +762,14 @@ export default function AdminDashboard({
                 {adminMapType === 'gps' ? (
                   /* High-Performance Realtime GPS Engine plotting all active incidents */
                   <GpsMap 
-                    lat={selectedAlert ? (9.08 + selectedAlert.coordinates.y/10000) : 9.0950}
-                    lon={selectedAlert ? (7.53 + selectedAlert.coordinates.x/10000) : 7.5500}
+                    lat={selectedAlert?.coordinates ? (9.08 + selectedAlert.coordinates.y/10000) : 9.0950}
+                    lon={selectedAlert?.coordinates ? (7.53 + selectedAlert.coordinates.x/10000) : 7.5500}
                     zoom={16}
                     height="100%"
                     showUserMarker={false}
                     showBreadcrumbTrail={false}
                     markers={alerts
-                      .filter(a => ['pending', 'acknowledged', 'responding'].includes(a.status))
+                      .filter(a => ['pending', 'acknowledged', 'responding'].includes(a.status) && a.coordinates)
                       .map(a => ({
                         lat: 9.08 + a.coordinates.y/10000,
                         lon: 7.53 + a.coordinates.x/10000,
@@ -854,7 +855,7 @@ export default function AdminDashboard({
                   </g>
 
                   {/* Draw correlated dispatch route from Department Base to target incident */}
-                  {selectedAlert && ['pending', 'acknowledged', 'responding'].includes(selectedAlert.status) && (
+                  {selectedAlert && selectedAlert.coordinates && ['pending', 'acknowledged', 'responding'].includes(selectedAlert.status) && (
                     <g>
                       <line 
                         x1={deptBase.x} y1={deptBase.y} 
@@ -873,7 +874,7 @@ export default function AdminDashboard({
 
                   {/* Active Alert Map Pins */}
                   {filteredAlerts
-                    .filter(a => ['pending', 'acknowledged', 'responding'].includes(a.status))
+                    .filter(a => ['pending', 'acknowledged', 'responding'].includes(a.status) && a.coordinates)
                     .map(alert => {
                       const isSelected = selectedAlertId === alert.id;
                       const catColor = getCategoryColor(alert.category);
@@ -1025,14 +1026,16 @@ export default function AdminDashboard({
                       </div>
 
                       {/* Google Maps Turn-by-Turn Driving Navigation button */}
-                      <a 
-                        href={`https://www.google.com/maps/dir/?api=1&destination=${(9.08 + selectedAlert.coordinates.y/10000).toFixed(5)},${(7.53 + selectedAlert.coordinates.x/10000).toFixed(5)}`}
-                        target="_blank" 
-                        rel="noreferrer"
-                        style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '6px', background: '#2563eb', color: '#fff', padding: '7px', borderRadius: '8px', fontSize: '0.75rem', fontWeight: 'bold', textDecoration: 'none', marginTop: '4px' }}
-                      >
-                        🚗 Turn-by-Turn Google Maps Route
-                      </a>
+                      {selectedAlert?.coordinates && (
+                        <a 
+                          href={`https://www.google.com/maps/dir/?api=1&destination=${(9.08 + selectedAlert.coordinates.y/10000).toFixed(5)},${(7.53 + selectedAlert.coordinates.x/10000).toFixed(5)}`}
+                          target="_blank" 
+                          rel="noreferrer"
+                          style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '6px', background: '#2563eb', color: '#fff', padding: '7px', borderRadius: '8px', fontSize: '0.75rem', fontWeight: 'bold', textDecoration: 'none', marginTop: '4px' }}
+                        >
+                          🚗 Turn-by-Turn Google Maps Route
+                        </a>
+                      )}
                     </div>
 
                     {/* Stealth Audio Sniffer Widget */}
