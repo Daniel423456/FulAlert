@@ -60,7 +60,6 @@ export default function AuthModal({
     confirmPassword: '',
     department: 'Computer Science',
     residence: 'Hostel Block A (Male)',
-    blood: 'O+',
     allergies: 'None',
     emergencyContactName: '',
     emergencyContactPhone: '',
@@ -273,7 +272,6 @@ export default function AuthModal({
           name: formData.name.trim(),
           matric: formData.matric.trim().toUpperCase(),
           phone: formData.phone.trim(),
-          blood: formData.blood,
           allergies: formData.allergies.trim(),
           department: formData.department,
           residence: formData.residence,
@@ -686,33 +684,14 @@ export default function AuthModal({
                   </div>
                 </div>
 
-                <div className="auth-grid-2">
-                  <div className="auth-input-group">
-                    <label>Blood Group</label>
-                    <select 
-                      value={formData.blood} 
-                      onChange={e => handleInputChange('blood', e.target.value)}
-                    >
-                      <option value="O+">O+ (Universal Donor)</option>
-                      <option value="O-">O-</option>
-                      <option value="A+">A+</option>
-                      <option value="A-">A-</option>
-                      <option value="B+">B+</option>
-                      <option value="B-">B-</option>
-                      <option value="AB+">AB+</option>
-                      <option value="AB-">AB-</option>
-                    </select>
-                  </div>
-
-                  <div className="auth-input-group">
-                    <label>Known Allergies / Medical</label>
-                    <input 
-                      type="text" 
-                      placeholder="e.g. Asthma, Penicillin, None"
-                      value={formData.allergies}
-                      onChange={e => handleInputChange('allergies', e.target.value)}
-                    />
-                  </div>
+                <div className="auth-input-group">
+                  <label>Known Allergies / Medical Conditions</label>
+                  <input 
+                    type="text" 
+                    placeholder="e.g. Asthma, Penicillin, None"
+                    value={formData.allergies}
+                    onChange={e => handleInputChange('allergies', e.target.value)}
+                  />
                 </div>
 
                 <div className="auth-grid-2">

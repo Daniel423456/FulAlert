@@ -116,7 +116,7 @@ export default function StudentPortal({
   // Registration and Switch states
   const [isRegistering, setIsRegistering] = useState(false);
   const [regForm, setRegForm] = useState({
-    matric: '', name: '', phone: '', blood: 'O+', allergies: '', emergencyContact: '', email: ''
+    matric: '', name: '', phone: '', allergies: '', emergencyContact: '', email: ''
   });
 
   // Hold-to-Confirm SOS States
@@ -297,7 +297,6 @@ export default function StudentPortal({
       senderName: isAnonymous ? 'Anonymous Student' : (currentUser.fullName || currentUser.name || 'Student'),
       senderMatric: isAnonymous ? 'ANON' : (currentUser.matric || ''),
       senderPhone: isAnonymous ? 'N/A' : (currentUser.phone || ''),
-      senderBlood: isAnonymous ? 'N/A' : (currentUser.blood || 'O+'),
       senderAllergies: isAnonymous ? 'N/A' : (currentUser.allergies || 'None'),
       senderContact: isAnonymous ? 'N/A' : (currentUser.emergencyContact || 'Campus Security'),
       senderUid: currentUser.uid || '',
@@ -448,7 +447,7 @@ export default function StudentPortal({
                 </div>
                 <p style={{ fontSize: '0.9rem', fontWeight: 800, marginTop: '4px', color: '#fff' }}>{currentUser.fullName || currentUser.name}</p>
                 <p style={{ fontSize: '0.72rem', color: 'var(--text-secondary)' }}>
-                  Matric: <strong>{currentUser.matric}</strong> • Blood: <strong>{currentUser.blood || 'O+'}</strong>
+                  Matric: <strong>{currentUser.matric}</strong>
                 </p>
                 {currentUser.strikes > 0 && (
                   <p style={{ color: 'var(--accent-sos)', fontSize: '0.7rem', fontWeight: 'bold', marginTop: '4px' }}>
@@ -1075,15 +1074,9 @@ export default function StudentPortal({
                     </div>
                   </div>
 
-                  <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '10px' }}>
-                    <div>
-                      <span style={{ fontSize: '0.65rem', color: 'var(--text-secondary)' }}>Blood Group:</span>
-                      <p style={{ fontSize: '0.8rem', fontWeight: 600 }}>{currentUser.blood}</p>
-                    </div>
-                    <div>
-                      <span style={{ fontSize: '0.65rem', color: 'var(--text-secondary)' }}>Allergies:</span>
-                      <p style={{ fontSize: '0.8rem', fontWeight: 600 }}>{currentUser.allergies || 'None'}</p>
-                    </div>
+                  <div>
+                    <span style={{ fontSize: '0.65rem', color: 'var(--text-secondary)' }}>Allergies / Special Medical Notes:</span>
+                    <p style={{ fontSize: '0.8rem', fontWeight: 600 }}>{currentUser.allergies || 'None'}</p>
                   </div>
 
                   <div>
@@ -1120,7 +1113,6 @@ export default function StudentPortal({
                   <input type="text" placeholder="Full Name" value={regForm.name} onChange={(e) => setRegForm({ ...regForm, name: e.target.value })} required />
                   <input type="text" placeholder="Matric / Staff ID" value={regForm.matric} disabled style={{ opacity: 0.5 }} />
                   <input type="text" placeholder="Phone Number" value={regForm.phone} onChange={(e) => setRegForm({ ...regForm, phone: e.target.value })} required />
-                  <input type="text" placeholder="Blood Group" value={regForm.blood} onChange={(e) => setRegForm({ ...regForm, blood: e.target.value })} />
                   <input type="text" placeholder="Allergies" value={regForm.allergies} onChange={(e) => setRegForm({ ...regForm, allergies: e.target.value })} />
                   <input type="text" placeholder="Next of Kin Contact" value={regForm.emergencyContact} onChange={(e) => setRegForm({ ...regForm, emergencyContact: e.target.value })} required />
                   <input type="email" placeholder="School Email" value={regForm.email} onChange={(e) => setRegForm({ ...regForm, email: e.target.value })} required />

@@ -64,7 +64,7 @@ export default function HomePage({ onNavigate, currentUser, onOpenAuth, onLogout
     {
       step: '02',
       title: 'Instant Automated Dispatch',
-      desc: 'Your live GPS coordinates, medical profile (blood/allergies), and contacts are relayed directly to on-duty responders.'
+      desc: 'Your live GPS coordinates, medical profile (allergies), and contacts are relayed directly to on-duty responders.'
     },
     {
       step: '03',

@@ -913,7 +913,7 @@ export default function AdminDashboard({
                     <div style={{ fontSize: '0.75rem', display: 'flex', flexDirection: 'column', gap: '4px' }}>
                       <p><strong>Reporter:</strong> {selectedAlert.senderName} ({selectedAlert.senderMatric})</p>
                       <p><strong>Phone:</strong> {selectedAlert.senderPhone}</p>
-                      <p><strong>Medical Details:</strong> Blood {selectedAlert.senderBlood} | Allergies: {selectedAlert.senderAllergies}</p>
+                      <p><strong>Medical Details / Allergies:</strong> {selectedAlert.senderAllergies}</p>
                       <p><strong>Next of Kin:</strong> {selectedAlert.senderContact}</p>
                       <p><strong>Location Spot:</strong> <span style={{ color: '#60a5fa', fontWeight: 700 }}>{selectedAlert.locationName}</span></p>
                       <p><strong>Assigned Response Unit:</strong> <span style={{ color: 'var(--brand-orange)', fontWeight: 700 }}>{selectedAlert.assignedResponder || (selectedAlert.category === 'medical' ? 'University Health Centre' : 'Campus Security Unit')}</span></p>
