@@ -16,7 +16,14 @@ import {
   ArrowLeft,
   AlertTriangle,
   MessageSquare,
-  Send
+  Send,
+  BatteryCharging,
+  Battery,
+  Layers,
+  StopCircle,
+  Check,
+  Eye,
+  Info
 } from 'lucide-react';
 import GpsMap from './GpsMap';
 
@@ -27,9 +34,13 @@ export default function WalkWithMe({
   onBackToHome = null,
   isEmbedded = false
 }) {
+  // Check if viewing someone else's live walk via URL query code
+  const urlParams = new URLSearchParams(window.location.search || window.location.hash.split('?')[1] || '');
+  const viewerCode = urlParams.get('code') || urlParams.get('walk');
+
   // Walker information (no account needed!)
   const [walkerName, setWalkerName] = useState(() => {
-    return currentUser?.name || currentUser?.fullName || localStorage.getItem('fulalert_walk_name') || '';
+    return currentUser?.name || currentUser?.fullName || localStorage.getItem('fulalert_walk_name') || 'FUL Student';
   });
   const [phoneRecipient, setPhoneRecipient] = useState(() => {
     return localStorage.getItem('fulalert_walk_phone') || '';
@@ -37,26 +48,30 @@ export default function WalkWithMe({
   const [emailRecipient, setEmailRecipient] = useState(() => {
     return localStorage.getItem('fulalert_walk_email') || '';
   });
-  const [destination, setDestination] = useState('Hostel Block B');
-  const [customDestination, setCustomDestination] = useState('');
+  const [comment, setComment] = useState('Walking back to hostel from library');
+  const [selectedDuration, setSelectedDuration] = useState(60); // 15, 60, 480 minutes (WhatsApp standard)
 
   // Active Walk State
   const [isEscortActive, setIsEscortActive] = useState(false);
-  const [walkDuration, setWalkDuration] = useState(0);
+  const [elapsedSeconds, setElapsedSeconds] = useState(0);
   const [copiedNotification, setCopiedNotification] = useState('');
-  const [sessionCode] = useState(() => 'WALK-' + Math.floor(100000 + Math.random() * 900000));
+  const [sessionCode] = useState(() => viewerCode || ('WALK-' + Math.floor(100000 + Math.random() * 900000)));
+
+  // Phone Battery Percentage (WhatsApp shows battery level so friends know if phone is low!)
+  const [batteryLevel, setBatteryLevel] = useState(85);
 
   // Hardware GPS state
   const [useDeviceGps, setUseDeviceGps] = useState(false);
   const [deviceCoords, setDeviceCoords] = useState(null);
-  const [gpsAccuracy, setGpsAccuracy] = useState(null);
+  const [gpsAccuracy, setGpsAccuracy] = useState(8);
   const watchIdRef = useRef(null);
 
-  // Compute active Latitude and Longitude
-  // Default to Federal University Lokoja campus coordinates
+  // Map display settings
+  const [mapStyle, setMapStyle] = useState('google'); // 'google' or 'satellite'
+
+  // Coordinates calculation (Federal University Lokoja campus default)
   const baseLat = 9.0880;
   const baseLon = 7.5340;
-  
   const currentLat = deviceCoords?.lat ?? (baseLat + (walkWithMeCoords?.y || 180) / 10000);
   const currentLon = deviceCoords?.lon ?? (baseLon + (walkWithMeCoords?.x || 750) / 10000);
 
@@ -64,6 +79,18 @@ export default function WalkWithMe({
   const googleMapsUrl = `https://www.google.com/maps?q=${currentLat.toFixed(5)},${currentLon.toFixed(5)}`;
   const googleDirectionsUrl = `https://www.google.com/maps/dir/?api=1&destination=${currentLat.toFixed(5)},${currentLon.toFixed(5)}`;
   const inAppTrackingUrl = `${window.location.origin}/#/walk?code=${sessionCode}`;
+
+  // Read actual phone battery if supported by browser
+  useEffect(() => {
+    if (navigator.getBattery) {
+      navigator.getBattery().then(batt => {
+        setBatteryLevel(Math.round(batt.level * 100));
+        batt.addEventListener('levelchange', () => {
+          setBatteryLevel(Math.round(batt.level * 100));
+        });
+      }).catch(() => {});
+    }
+  }, []);
 
   // Hardware GPS Watcher
   useEffect(() => {
@@ -96,68 +123,84 @@ export default function WalkWithMe({
     };
   }, [useDeviceGps]);
 
-  // Duration timer when active
+  // Duration countdown timer when live sharing is active
   useEffect(() => {
     let timer;
     if (isEscortActive) {
       timer = setInterval(() => {
-        setWalkDuration(prev => prev + 1);
+        setElapsedSeconds(prev => {
+          const next = prev + 1;
+          if (next >= selectedDuration * 60) {
+            clearInterval(timer);
+            setIsEscortActive(false);
+            showNotification('⏰ Live location sharing expired.');
+            return 0;
+          }
+          return next;
+        });
       }, 1000);
     } else {
-      setWalkDuration(0);
+      setElapsedSeconds(0);
     }
     return () => clearInterval(timer);
-  }, [isEscortActive]);
+  }, [isEscortActive, selectedDuration]);
 
-  // Format seconds into MM:SS
-  const formatTime = (secs) => {
-    const mins = Math.floor(secs / 60);
-    const rem = secs % 60;
-    return `${mins.toString().padStart(2, '0')}:${rem.toString().padStart(2, '0')}`;
+  // Formatted Time Remaining
+  const remainingSeconds = Math.max(0, (selectedDuration * 60) - elapsedSeconds);
+  const remainingMinutes = Math.floor(remainingSeconds / 60);
+  const remainingSecs = remainingSeconds % 60;
+  const timeRemainingStr = `${remainingMinutes}m ${remainingSecs.toString().padStart(2, '0')}s remaining`;
+
+  // Calculated expiration time
+  const expiryDate = new Date(Date.now() + remainingSeconds * 1000);
+  const expiryTimeStr = expiryDate.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+
+  // Initials for avatar
+  const getInitials = (name) => {
+    if (!name) return 'ME';
+    const parts = name.trim().split(' ');
+    if (parts.length >= 2) return `${parts[0][0]}${parts[1][0]}`.toUpperCase();
+    return name.substring(0, 2).toUpperCase();
   };
 
-  // Build clean message templates
-  const effectiveWalkerName = walkerName.trim() || 'FUL Student';
-  const effectiveDestination = customDestination.trim() || destination;
+  // Build WhatsApp formatted message
+  const buildWhatsAppMessage = (isArrival = false) => {
+    if (isArrival) {
+      return (
+`✅ *FULALERT - Safe Arrival Confirmation*
+*Walker:* ${walkerName}
+*Status:* I have arrived safely at my destination on campus!
+*Time:* ${new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+Thank you for watching over me! 🙏`
+      );
+    }
 
-  const buildSafetyMessage = () => {
     return (
-`🚨 FULALERT - Walk With Me Safety Tracking
-Walker: ${effectiveWalkerName}
-Destination: ${effectiveDestination}
-I am walking on campus and sharing my live location with you.
+`📍 *LIVE LOCATION SHARE - FULALERT*
+👤 *Walker:* ${walkerName}
+💬 *Note:* "${comment}"
+⏳ *Live for:* ${selectedDuration >= 60 ? (selectedDuration / 60) + ' hour(s)' : selectedDuration + ' minutes'} (until ${expiryTimeStr})
+🔋 *Battery:* ${batteryLevel}%
 
-📍 Google Maps Link:
+🗺️ *Click to Open in Google Maps:*
 ${googleMapsUrl}
 
-🌐 Coordinates:
-Latitude: ${currentLat.toFixed(5)}° N
-Longitude: ${currentLon.toFixed(5)}° E
+🌐 *GPS Coordinates:*
+${currentLat.toFixed(5)}° N, ${currentLon.toFixed(5)}° E
 (Federal University Lokoja Campus)
 
-🔗 Live In-App Tracker:
-${inAppTrackingUrl}
-Time: ${new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}`
+📱 *Live Campus Tracker Web Link:*
+${inAppTrackingUrl}`
     );
   };
 
-  const buildArrivalMessage = () => {
-    return (
-`✅ FULALERT: I have arrived safely at ${effectiveDestination}!
-Walker: ${effectiveWalkerName}
-Time: ${new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
-Thank you for watching over my walk.`
-    );
-  };
-
-  // Helper to sanitize phone for SMS / WhatsApp
+  // Helper to sanitize phone for WhatsApp / SMS
   const cleanPhoneNumber = (phone) => {
     return phone.replace(/[^0-9+]/g, '');
   };
 
   const getWhatsAppNumber = (phone) => {
     let cleaned = phone.replace(/[^0-9]/g, '');
-    // If Nigerian number starting with 0, convert to 234
     if (cleaned.startsWith('0') && cleaned.length === 11) {
       cleaned = '234' + cleaned.substring(1);
     }
@@ -165,23 +208,8 @@ Thank you for watching over my walk.`
   };
 
   // Dispatch Actions
-  const handleSendSms = (isArrival = false) => {
-    const text = isArrival ? buildArrivalMessage() : buildSafetyMessage();
-    const phone = cleanPhoneNumber(phoneRecipient);
-    
-    // Save to local storage for quick access next time
-    if (phoneRecipient) localStorage.setItem('fulalert_walk_phone', phoneRecipient);
-    if (walkerName) localStorage.setItem('fulalert_walk_name', walkerName);
-
-    const encoded = encodeURIComponent(text);
-    // iOS and Android SMS URI format
-    const smsUrl = phone ? `sms:${phone}?body=${encoded}` : `sms:?body=${encoded}`;
-    window.open(smsUrl, '_blank');
-    showNotification('📱 Opening SMS messaging app...');
-  };
-
   const handleSendWhatsApp = (isArrival = false) => {
-    const text = isArrival ? buildArrivalMessage() : buildSafetyMessage();
+    const text = buildWhatsAppMessage(isArrival);
     const waPhone = getWhatsAppNumber(phoneRecipient);
     
     if (phoneRecipient) localStorage.setItem('fulalert_walk_phone', phoneRecipient);
@@ -192,47 +220,40 @@ Thank you for watching over my walk.`
       ? `https://api.whatsapp.com/send?phone=${waPhone}&text=${encoded}`
       : `https://api.whatsapp.com/send?text=${encoded}`;
     window.open(waUrl, '_blank');
-    showNotification('💬 Opening WhatsApp location share...');
+    showNotification('💬 Opening WhatsApp live location share...');
+  };
+
+  const handleSendSms = (isArrival = false) => {
+    const text = buildWhatsAppMessage(isArrival);
+    const phone = cleanPhoneNumber(phoneRecipient);
+    
+    if (phoneRecipient) localStorage.setItem('fulalert_walk_phone', phoneRecipient);
+    if (walkerName) localStorage.setItem('fulalert_walk_name', walkerName);
+
+    const encoded = encodeURIComponent(text);
+    const smsUrl = phone ? `sms:${phone}?body=${encoded}` : `sms:?body=${encoded}`;
+    window.open(smsUrl, '_blank');
+    showNotification('📱 Opening SMS messenger...');
   };
 
   const handleSendEmail = (isArrival = false) => {
     const subject = isArrival 
-      ? `✅ FULALERT: ${effectiveWalkerName} Arrived Safely`
-      : `🚨 FULALERT: Live Campus Walk Location - ${effectiveWalkerName}`;
-    const text = isArrival ? buildArrivalMessage() : buildSafetyMessage();
+      ? `✅ FULALERT: ${walkerName} Arrived Safely`
+      : `📍 FULALERT Live Location Share - ${walkerName}`;
+    const text = buildWhatsAppMessage(isArrival);
     
     if (emailRecipient) localStorage.setItem('fulalert_walk_email', emailRecipient);
     if (walkerName) localStorage.setItem('fulalert_walk_name', walkerName);
 
     const mailtoUrl = `mailto:${emailRecipient.trim()}?subject=${encodeURIComponent(subject)}&body=${encodeURIComponent(text)}`;
     window.open(mailtoUrl, '_blank');
-    showNotification('✉️ Opening Email client...');
-  };
-
-  const handleNativeShare = async () => {
-    const text = buildSafetyMessage();
-    if (navigator.share) {
-      try {
-        await navigator.share({
-          title: `FULALERT Walk With Me - ${effectiveWalkerName}`,
-          text: text,
-          url: googleMapsUrl
-        });
-        showNotification('✅ Location shared successfully!');
-      } catch (err) {
-        if (err.name !== 'AbortError') {
-          handleCopyDetails();
-        }
-      }
-    } else {
-      handleCopyDetails();
-    }
+    showNotification('✉️ Opening Email app...');
   };
 
   const handleCopyDetails = () => {
-    const text = buildSafetyMessage();
+    const text = buildWhatsAppMessage(false);
     navigator.clipboard?.writeText(text);
-    showNotification('📋 Google Map & Coordinates copied to clipboard!');
+    showNotification('📋 WhatsApp location & Google Map link copied!');
   };
 
   const showNotification = (msg) => {
@@ -240,10 +261,10 @@ Thank you for watching over my walk.`
     setTimeout(() => setCopiedNotification(''), 3500);
   };
 
-  // Start the escort
-  const handleStartWalk = () => {
+  // Start Sharing
+  const handleStartShare = () => {
     if (!phoneRecipient && !emailRecipient) {
-      alert('⚠️ Please enter either a phone number or an email address to send your location to!');
+      alert('⚠️ Please enter a phone number or email address so your contact receives the link!');
       return;
     }
     
@@ -253,7 +274,7 @@ Thank you for watching over my walk.`
 
     setIsEscortActive(true);
 
-    // Auto-prompt the most appropriate channel
+    // Auto-prompt WhatsApp or SMS directly
     if (phoneRecipient) {
       handleSendWhatsApp();
     } else if (emailRecipient) {
@@ -261,8 +282,9 @@ Thank you for watching over my walk.`
     }
   };
 
-  const handleEndWalk = () => {
-    if (window.confirm('Are you at your destination safely? Would you like to send a safe arrival notification to your contact?')) {
+  // Stop Sharing
+  const handleStopShare = () => {
+    if (window.confirm('Stop sharing live location? Send safe arrival message to your contact?')) {
       if (phoneRecipient) {
         handleSendWhatsApp(true);
       } else if (emailRecipient) {
@@ -274,563 +296,385 @@ Thank you for watching over my walk.`
 
   return (
     <div style={{
-      maxWidth: isEmbedded ? '100%' : '800px',
+      maxWidth: isEmbedded ? '100%' : '520px',
       margin: isEmbedded ? '0' : '0 auto',
-      padding: isEmbedded ? '0' : '16px',
-      color: '#fff',
-      fontFamily: 'system-ui, -apple-system, sans-serif'
+      background: '#111b21', // Authentic WhatsApp dark mode background
+      color: '#e9edef',
+      borderRadius: isEmbedded ? '0' : '20px',
+      overflow: 'hidden',
+      border: isEmbedded ? 'none' : '1px solid #202c33',
+      boxShadow: '0 12px 36px rgba(0,0,0,0.6)',
+      display: 'flex',
+      flexDirection: 'column',
+      minHeight: isEmbedded ? '600px' : '720px',
+      position: 'relative',
+      fontFamily: '-apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif'
     }}>
-      {/* Top Banner / Header */}
-      {!isEmbedded && (
-        <div style={{ 
-          display: 'flex', 
-          alignItems: 'center', 
-          justifyContent: 'space-between', 
-          marginBottom: '16px',
-          borderBottom: '1px solid var(--border-color)',
-          paddingBottom: '12px'
-        }}>
-          <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
-            {onBackToHome && (
-              <button 
-                onClick={onBackToHome}
-                style={{
-                  background: 'var(--bg-secondary)',
-                  border: '1px solid var(--border-color)',
-                  color: '#fff',
-                  borderRadius: '10px',
-                  padding: '8px 12px',
-                  display: 'flex',
-                  alignItems: 'center',
-                  gap: '6px',
-                  fontSize: '0.8rem',
-                  cursor: 'pointer'
-                }}
-              >
-                <ArrowLeft size={16} /> Home
-              </button>
+
+      {/* 1. WHATSAPP TOP APP BAR */}
+      <div style={{
+        background: '#202c33',
+        padding: '12px 16px',
+        display: 'flex',
+        alignItems: 'center',
+        justifyContent: 'space-between',
+        borderBottom: '1px solid rgba(134, 150, 160, 0.15)',
+        zIndex: 10
+      }}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
+          {onBackToHome && (
+            <button 
+              onClick={onBackToHome}
+              style={{
+                background: 'transparent',
+                border: 'none',
+                color: '#aebac1',
+                padding: '4px',
+                cursor: 'pointer',
+                display: 'flex',
+                alignItems: 'center'
+              }}
+              title="Back"
+            >
+              <ArrowLeft size={20} />
+            </button>
+          )}
+
+          {/* User Avatar Circle */}
+          <div style={{
+            position: 'relative',
+            width: '38px',
+            height: '38px',
+            borderRadius: '50%',
+            background: '#00a884',
+            color: '#fff',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            fontWeight: 800,
+            fontSize: '0.85rem'
+          }}>
+            {getInitials(walkerName)}
+            {isEscortActive && (
+              <span style={{
+                position: 'absolute',
+                bottom: '-2px',
+                right: '-2px',
+                width: '12px',
+                height: '12px',
+                borderRadius: '50%',
+                background: '#25d366',
+                border: '2px solid #202c33'
+              }}></span>
             )}
-            <div>
-              <h2 style={{ fontSize: '1.25rem', fontWeight: 800, margin: 0, display: 'flex', alignItems: 'center', gap: '8px' }}>
-                <Navigation size={22} style={{ color: '#006837' }} />
-                <span>Walk With Me</span>
-                <span style={{ 
-                  fontSize: '0.65rem', 
-                  background: 'rgba(245, 158, 11, 0.2)', 
-                  color: '#f59e0b', 
-                  border: '1px solid #f59e0b', 
-                  padding: '2px 8px', 
-                  borderRadius: '12px',
-                  fontWeight: 700
-                }}>
-                  No Login Required
-                </span>
-              </h2>
-              <p style={{ fontSize: '0.75rem', color: 'var(--text-secondary)', margin: '2px 0 0 0' }}>
-                Send live GPS coordinates & Google Maps directly to your trusted contact's phone or email
-              </p>
+          </div>
+
+          <div>
+            <div style={{ fontSize: '0.92rem', fontWeight: 700, display: 'flex', alignItems: 'center', gap: '6px' }}>
+              <span>Share Live Location</span>
+              <span style={{ 
+                fontSize: '0.62rem', 
+                background: '#00a884', 
+                color: '#fff', 
+                padding: '1px 6px', 
+                borderRadius: '8px', 
+                fontWeight: 800 
+              }}>
+                WhatsApp Mode
+              </span>
+            </div>
+            <div style={{ fontSize: '0.72rem', color: '#8696a0' }}>
+              {isEscortActive ? `Live until ${expiryTimeStr}` : 'No account needed • Instant GPS'}
             </div>
           </div>
+        </div>
 
-          <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-            <span style={{
-              display: 'inline-flex',
+        {/* Battery and GPS Icons */}
+        <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '4px', fontSize: '0.72rem', color: '#8696a0' }}>
+            <Battery size={15} style={{ color: batteryLevel < 20 ? '#ef4444' : '#25d366' }} />
+            <span>{batteryLevel}%</span>
+          </div>
+
+          <button
+            onClick={() => setUseDeviceGps(prev => !prev)}
+            style={{
+              background: useDeviceGps ? '#00a884' : '#111b21',
+              border: useDeviceGps ? '1px solid #25d366' : '1px solid #374248',
+              color: '#fff',
+              borderRadius: '20px',
+              padding: '4px 8px',
+              fontSize: '0.68rem',
+              fontWeight: 700,
+              cursor: 'pointer',
+              display: 'flex',
               alignItems: 'center',
-              gap: '6px',
-              fontSize: '0.75rem',
-              color: '#10b981',
-              background: 'rgba(16, 185, 129, 0.1)',
-              border: '1px solid rgba(16, 185, 129, 0.3)',
-              padding: '4px 10px',
-              borderRadius: '20px'
-            }}>
-              <span style={{ width: '6px', height: '6px', borderRadius: '50%', background: '#10b981' }}></span>
-              Public Safety Link
-            </span>
-          </div>
+              gap: '4px'
+            }}
+            title="Toggle Phone GPS"
+          >
+            <Compass size={12} />
+            <span>{useDeviceGps ? 'GPS On' : 'Use GPS'}</span>
+          </button>
         </div>
-      )}
+      </div>
 
-      {/* Embedded header when inside phone mockup */}
-      {isEmbedded && (
-        <div style={{ textAlign: 'center', marginBottom: '14px' }}>
-          <div style={{ 
-            display: 'inline-flex', 
-            alignItems: 'center', 
-            justifyContent: 'center', 
-            width: '44px', 
-            height: '44px', 
-            borderRadius: '50%', 
-            background: 'rgba(0, 104, 55, 0.2)', 
-            color: '#006837',
-            marginBottom: '6px'
-          }}>
-            <Navigation size={22} />
-          </div>
-          <h3 style={{ fontSize: '1.15rem', fontWeight: 800, margin: 0 }}>Walk With Me</h3>
-          <p style={{ fontSize: '0.75rem', color: 'var(--text-secondary)', marginTop: '2px' }}>
-            Send your Google Map location to friends or parents instantly
-          </p>
-        </div>
-      )}
-
-      {/* Toast Notification Banner */}
+      {/* Toast Notification */}
       {copiedNotification && (
         <div style={{
-          background: '#006837',
+          position: 'absolute',
+          top: '64px',
+          left: '16px',
+          right: '16px',
+          background: '#00a884',
           color: '#fff',
-          padding: '10px 16px',
+          padding: '9px 14px',
           borderRadius: '10px',
-          marginBottom: '14px',
-          fontSize: '0.8rem',
+          fontSize: '0.78rem',
           fontWeight: 700,
           display: 'flex',
           alignItems: 'center',
           gap: '8px',
-          boxShadow: '0 4px 12px rgba(0, 104, 55, 0.4)',
-          animation: 'fadeIn 0.3s ease-out'
+          boxShadow: '0 4px 16px rgba(0,0,0,0.5)',
+          zIndex: 1000,
+          animation: 'fadeIn 0.25s ease-out'
         }}>
-          <CheckCircle size={18} />
+          <CheckCircle size={16} />
           <span>{copiedNotification}</span>
         </div>
       )}
 
-      {/* NO LOGIN CALLOUT */}
-      <div style={{
-        background: 'linear-gradient(135deg, rgba(0, 104, 55, 0.15) 0%, rgba(245, 158, 11, 0.1) 100%)',
-        border: '1px solid rgba(0, 104, 55, 0.35)',
-        borderRadius: '12px',
-        padding: '10px 14px',
-        marginBottom: '16px',
-        display: 'flex',
-        alignItems: 'center',
-        justifyContent: 'space-between',
-        gap: '10px',
-        fontSize: '0.78rem'
-      }}>
-        <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-          <ShieldAlert size={18} style={{ color: '#f59e0b', flexShrink: 0 }} />
-          <span>
-            <strong>Open Access:</strong> Anyone walking at night can send their coordinates. No account creation or login required!
-          </span>
-        </div>
-        <button
-          onClick={() => setUseDeviceGps(prev => !prev)}
-          style={{
-            background: useDeviceGps ? '#006837' : 'rgba(255,255,255,0.1)',
-            border: useDeviceGps ? '1px solid #10b981' : '1px solid var(--border-color)',
-            color: '#fff',
-            borderRadius: '8px',
-            padding: '5px 10px',
-            fontSize: '0.7rem',
-            fontWeight: 700,
-            cursor: 'pointer',
-            flexShrink: 0,
+      {/* 2. FULL-SCREEN INTERACTIVE MAP (WHATSAPP RADAR BEACON) */}
+      <div style={{ position: 'relative', flex: 1, minHeight: '300px' }}>
+        <GpsMap 
+          lat={currentLat} 
+          lon={currentLon}
+          zoom={17}
+          height="100%"
+          showUserMarker={true}
+          showBreadcrumbTrail={true}
+          userMarkerColor="#25d366" // WhatsApp green marker
+          userMarkerInitials={getInitials(walkerName)}
+          onLocationUpdate={(lat, lon) => {
+            setDeviceCoords({ lat, lon });
+          }}
+        />
+
+        {/* Floating Top Radar Status Bar */}
+        <div style={{
+          position: 'absolute',
+          top: '12px',
+          left: '12px',
+          right: '12px',
+          display: 'flex',
+          justifyContent: 'space-between',
+          alignItems: 'center',
+          zIndex: 500,
+          pointerEvents: 'none'
+        }}>
+          <div style={{
+            background: 'rgba(17, 27, 33, 0.88)',
+            backdropFilter: 'blur(8px)',
+            border: '1px solid rgba(134, 150, 160, 0.2)',
+            borderRadius: '20px',
+            padding: '5px 12px',
             display: 'flex',
             alignItems: 'center',
-            gap: '4px'
-          }}
-        >
-          <Compass size={13} />
-          {useDeviceGps ? 'Phone GPS Active' : 'Enable Real GPS'}
-        </button>
+            gap: '8px',
+            fontSize: '0.72rem',
+            color: '#e9edef',
+            boxShadow: '0 4px 12px rgba(0,0,0,0.4)',
+            pointerEvents: 'auto'
+          }}>
+            <span style={{
+              width: '8px',
+              height: '8px',
+              borderRadius: '50%',
+              background: '#25d366',
+              boxShadow: '0 0 8px #25d366',
+              animation: 'leaflet-pulse 1.4s infinite'
+            }}></span>
+            <span>{isEscortActive ? 'Live Location Active' : 'Ready to Share'}</span>
+            <span style={{ color: '#8696a0' }}>•</span>
+            <span style={{ color: '#8696a0' }}>Accurate to {gpsAccuracy}m</span>
+          </div>
+
+          {/* Google Maps External Link Pill */}
+          <a
+            href={googleMapsUrl}
+            target="_blank"
+            rel="noreferrer"
+            style={{
+              background: '#2563eb',
+              color: '#fff',
+              borderRadius: '20px',
+              padding: '6px 12px',
+              fontSize: '0.72rem',
+              fontWeight: 700,
+              textDecoration: 'none',
+              display: 'flex',
+              alignItems: 'center',
+              gap: '4px',
+              boxShadow: '0 4px 12px rgba(0,0,0,0.4)',
+              pointerEvents: 'auto'
+            }}
+          >
+            <span>Google Maps</span>
+            <ExternalLink size={12} />
+          </a>
+        </div>
       </div>
 
-      {!isEscortActive ? (
-        /* SETUP MODE */
-        <div style={{ display: 'flex', flexDirection: 'column', gap: '14px' }}>
-          
-          {/* Map Preview Card */}
-          <div style={{ 
-            position: 'relative', 
-            height: isEmbedded ? '150px' : '200px', 
-            borderRadius: '16px', 
-            overflow: 'hidden', 
-            border: '1px solid var(--border-color)',
-            boxShadow: '0 6px 20px rgba(0,0,0,0.4)'
-          }}>
-            <img 
-              src="/campus_night_map.jpg" 
-              alt="Campus GPS Map" 
-              style={{ width: '100%', height: '100%', objectFit: 'cover', filter: 'brightness(0.75)' }} 
-            />
-            <div style={{ position: 'absolute', inset: 0, background: 'linear-gradient(to top, rgba(10,11,16,0.9) 0%, transparent 60%)' }} />
-            
-            <div style={{ position: 'absolute', bottom: '12px', left: '12px', right: '12px', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-              <div>
-                <span style={{ fontSize: '0.72rem', color: '#f8fafc', fontWeight: 700, display: 'flex', alignItems: 'center', gap: '4px' }}>
-                  <MapPin size={13} style={{ color: '#f59e0b' }} /> Federal University Lokoja Walkways
-                </span>
-                <span style={{ fontSize: '0.65rem', color: 'var(--text-secondary)' }}>
-                  Lat: {currentLat.toFixed(4)}°, Lon: {currentLon.toFixed(4)}°
-                </span>
-              </div>
-              <a 
-                href={googleMapsUrl} 
-                target="_blank" 
-                rel="noreferrer"
-                style={{
-                  fontSize: '0.68rem',
-                  background: 'rgba(0, 104, 55, 0.4)',
-                  border: '1px solid #006837',
-                  color: '#fff',
-                  padding: '4px 8px',
-                  borderRadius: '6px',
-                  display: 'flex',
-                  alignItems: 'center',
-                  gap: '4px',
-                  textDecoration: 'none'
-                }}
-              >
-                <span>Google Maps</span>
-                <ExternalLink size={11} />
-              </a>
+      {/* 3. WHATSAPP BOTTOM SHEET DRAWER */}
+      <div style={{
+        background: '#202c33', // WhatsApp dark bottom tray
+        borderTop: '1px solid rgba(134, 150, 160, 0.15)',
+        padding: '16px',
+        display: 'flex',
+        flexDirection: 'column',
+        gap: '12px',
+        zIndex: 20
+      }}>
+
+        {!isEscortActive ? (
+          /* ========================================= */
+          /* SETUP STATE: SELECT DURATION & ADD NOTE   */
+          /* ========================================= */
+          <>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+              <span style={{ fontSize: '0.78rem', fontWeight: 700, color: '#aebac1' }}>
+                SHARE LIVE LOCATION FOR:
+              </span>
+              <span style={{ fontSize: '0.68rem', color: '#8696a0' }}>
+                No account required
+              </span>
             </div>
-          </div>
 
-          {/* Walker Name (Optional) */}
-          <div style={{ display: 'flex', flexDirection: 'column', gap: '4px' }}>
-            <label style={{ fontSize: '0.75rem', fontWeight: 700, color: 'var(--text-secondary)' }}>
-              Your Name / Nickname (Optional):
-            </label>
-            <input 
-              type="text" 
-              placeholder="e.g. Fatima Bello or Anonymous Student" 
-              value={walkerName} 
-              onChange={(e) => setWalkerName(e.target.value)} 
-              style={{
-                background: 'var(--bg-secondary)',
-                border: '1px solid var(--border-color)',
-                padding: '10px 12px',
-                borderRadius: '10px',
-                color: '#fff',
-                fontSize: '0.85rem'
-              }}
-            />
-          </div>
+            {/* WhatsApp Standard Duration Pills: 15m, 1h, 8h */}
+            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: '8px' }}>
+              {[
+                { label: '15 minutes', value: 15 },
+                { label: '1 hour', value: 60 },
+                { label: '8 hours', value: 480 }
+              ].map(d => {
+                const isSelected = selectedDuration === d.value;
+                return (
+                  <button
+                    key={d.value}
+                    onClick={() => setSelectedDuration(d.value)}
+                    style={{
+                      background: isSelected ? '#00a884' : '#111b21',
+                      border: isSelected ? '1.5px solid #25d366' : '1px solid #374248',
+                      color: isSelected ? '#fff' : '#aebac1',
+                      padding: '9px 6px',
+                      borderRadius: '12px',
+                      fontSize: '0.78rem',
+                      fontWeight: 700,
+                      cursor: 'pointer',
+                      display: 'flex',
+                      alignItems: 'center',
+                      justifyContent: 'center',
+                      gap: '4px',
+                      transition: 'all 0.15s ease'
+                    }}
+                  >
+                    {isSelected && <Check size={14} />}
+                    <span>{d.label}</span>
+                  </button>
+                );
+              })}
+            </div>
 
-          {/* Trusted Phone Input */}
-          <div style={{ display: 'flex', flexDirection: 'column', gap: '4px' }}>
-            <label style={{ fontSize: '0.75rem', fontWeight: 700, color: 'var(--text-secondary)', display: 'flex', alignItems: 'center', gap: '6px' }}>
-              <Phone size={13} style={{ color: '#10b981' }} />
-              Trusted Friend / Parent Phone Number (SMS & WhatsApp):
-            </label>
-            <input 
-              type="tel" 
-              placeholder="e.g. 08031234567 or +2348031234567" 
-              value={phoneRecipient} 
-              onChange={(e) => setPhoneRecipient(e.target.value)} 
-              style={{
-                background: 'var(--bg-secondary)',
-                border: '1px solid var(--border-color)',
-                padding: '10px 12px',
-                borderRadius: '10px',
-                color: '#fff',
-                fontSize: '0.85rem'
-              }}
-            />
-          </div>
-
-          {/* Trusted Email Input */}
-          <div style={{ display: 'flex', flexDirection: 'column', gap: '4px' }}>
-            <label style={{ fontSize: '0.75rem', fontWeight: 700, color: 'var(--text-secondary)', display: 'flex', alignItems: 'center', gap: '6px' }}>
-              <Mail size={13} style={{ color: '#f59e0b' }} />
-              Trusted Friend / Family Email Address:
-            </label>
-            <input 
-              type="email" 
-              placeholder="e.g. friend@gmail.com or guardian@yahoo.com" 
-              value={emailRecipient} 
-              onChange={(e) => setEmailRecipient(e.target.value)} 
-              style={{
-                background: 'var(--bg-secondary)',
-                border: '1px solid var(--border-color)',
-                padding: '10px 12px',
-                borderRadius: '10px',
-                color: '#fff',
-                fontSize: '0.85rem'
-              }}
-            />
-          </div>
-
-          {/* Walking Towards */}
-          <div style={{ display: 'flex', flexDirection: 'column', gap: '4px' }}>
-            <label style={{ fontSize: '0.75rem', fontWeight: 700, color: 'var(--text-secondary)' }}>
-              Where are you walking to?
-            </label>
-            <select 
-              value={destination} 
-              onChange={(e) => setDestination(e.target.value)}
-              style={{
-                background: 'var(--bg-secondary)',
-                border: '1px solid var(--border-color)',
-                padding: '10px 12px',
-                borderRadius: '10px',
-                color: '#fff',
-                fontSize: '0.85rem'
-              }}
-            >
-              <option value="Hostel Block A (Male)">Hostel Block A (Male)</option>
-              <option value="Hostel Block B (Female)">Hostel Block B (Female)</option>
-              <option value="Main Library">University Main Library</option>
-              <option value="Lecture Theatre 1">Lecture Theatre 1 / Faculty</option>
-              <option value="University Health Centre">University Health Centre</option>
-              <option value="Main Security Post">Main School Security Gate</option>
-              <option value="Other">Custom Destination...</option>
-            </select>
-            {destination === 'Other' && (
+            {/* WhatsApp "Add comment..." input */}
+            <div style={{ display: 'flex', alignItems: 'center', background: '#111b21', borderRadius: '12px', border: '1px solid #374248', padding: '4px 10px' }}>
               <input 
-                type="text" 
-                placeholder="Enter specific campus location..."
-                value={customDestination}
-                onChange={(e) => setCustomDestination(e.target.value)}
-                style={{
-                  background: 'var(--bg-secondary)',
-                  border: '1px solid var(--border-color)',
-                  padding: '8px 12px',
-                  borderRadius: '10px',
-                  color: '#fff',
-                  fontSize: '0.85rem',
-                  marginTop: '4px'
-                }}
-              />
-            )}
-          </div>
-
-          {/* Quick Location Preview Box */}
-          <div style={{
-            background: 'var(--bg-secondary)',
-            border: '1px solid var(--border-color)',
-            borderRadius: '12px',
-            padding: '12px',
-            fontSize: '0.75rem',
-            color: 'var(--text-secondary)'
-          }}>
-            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '6px' }}>
-              <span style={{ fontWeight: 700, color: '#fff' }}>📍 Live Link to be Sent:</span>
-              <button 
-                onClick={handleCopyDetails}
+                type="text"
+                placeholder="Add comment (e.g. Walking home from library)..."
+                value={comment}
+                onChange={(e) => setComment(e.target.value)}
                 style={{
                   background: 'transparent',
                   border: 'none',
-                  color: '#f59e0b',
-                  fontSize: '0.7rem',
-                  fontWeight: 700,
-                  cursor: 'pointer',
-                  display: 'flex',
-                  alignItems: 'center',
-                  gap: '4px'
+                  outline: 'none',
+                  color: '#e9edef',
+                  fontSize: '0.82rem',
+                  padding: '8px 4px',
+                  flex: 1
                 }}
-              >
-                <Copy size={12} /> Copy
-              </button>
+              />
             </div>
-            <div style={{ 
-              background: 'rgba(0,0,0,0.3)', 
-              padding: '8px', 
-              borderRadius: '6px', 
-              wordBreak: 'break-all',
-              fontFamily: 'monospace',
-              fontSize: '0.7rem',
-              color: '#93c5fd'
-            }}>
-              {googleMapsUrl}
-            </div>
-          </div>
 
-          {/* START & SEND BUTTONS */}
-          <button 
-            onClick={handleStartWalk}
-            style={{
-              width: '100%',
-              padding: '14px',
-              background: 'linear-gradient(135deg, #006837 0%, #064e3b 100%)',
-              border: '1px solid #10b981',
-              borderRadius: '12px',
-              color: '#fff',
-              fontSize: '0.95rem',
-              fontWeight: 800,
-              cursor: 'pointer',
-              display: 'flex',
-              alignItems: 'center',
-              justifyContent: 'center',
-              gap: '8px',
-              boxShadow: '0 4px 18px rgba(0, 104, 55, 0.4)'
-            }}
-          >
-            <Navigation size={18} />
-            <span>Start Walk & Send Live Location</span>
-          </button>
-
-          {/* Direct Sending Options Row */}
-          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: '8px' }}>
-            <button 
-              onClick={() => handleSendWhatsApp()}
-              style={{
-                background: '#128c7e',
-                border: 'none',
-                color: '#fff',
-                borderRadius: '10px',
-                padding: '10px 6px',
-                fontSize: '0.75rem',
-                fontWeight: 700,
-                cursor: 'pointer',
-                display: 'flex',
-                flexDirection: 'column',
-                alignItems: 'center',
-                gap: '4px'
-              }}
-            >
-              <MessageSquare size={16} />
-              <span>Send WhatsApp</span>
-            </button>
-
-            <button 
-              onClick={() => handleSendSms()}
-              style={{
-                background: '#2563eb',
-                border: 'none',
-                color: '#fff',
-                borderRadius: '10px',
-                padding: '10px 6px',
-                fontSize: '0.75rem',
-                fontWeight: 700,
-                cursor: 'pointer',
-                display: 'flex',
-                flexDirection: 'column',
-                alignItems: 'center',
-                gap: '4px'
-              }}
-            >
-              <Send size={16} />
-              <span>Send SMS</span>
-            </button>
-
-            <button 
-              onClick={() => handleSendEmail()}
-              style={{
-                background: '#ea580c',
-                border: 'none',
-                color: '#fff',
-                borderRadius: '10px',
-                padding: '10px 6px',
-                fontSize: '0.75rem',
-                fontWeight: 700,
-                cursor: 'pointer',
-                display: 'flex',
-                flexDirection: 'column',
-                alignItems: 'center',
-                gap: '4px'
-              }}
-            >
-              <Mail size={16} />
-              <span>Send Email</span>
-            </button>
-          </div>
-
-        </div>
-      ) : (
-        /* ACTIVE ESCORT HUD */
-        <div style={{ display: 'flex', flexDirection: 'column', gap: '14px' }}>
-          
-          {/* Active Status Header */}
-          <div style={{
-            background: 'linear-gradient(135deg, rgba(0, 104, 55, 0.25) 0%, rgba(6, 78, 59, 0.35) 100%)',
-            border: '1.5px solid #10b981',
-            borderRadius: '14px',
-            padding: '12px 16px',
-            display: 'flex',
-            alignItems: 'center',
-            justifyContent: 'space-between',
-            gap: '12px'
-          }}>
-            <div>
-              <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
-                <span style={{ 
-                  width: '10px', 
-                  height: '10px', 
-                  borderRadius: '50%', 
-                  background: '#10b981',
-                  boxShadow: '0 0 10px #10b981',
-                  animation: 'leaflet-pulse 1.4s infinite'
-                }}></span>
-                <span style={{ fontSize: '0.85rem', fontWeight: 800, color: '#10b981' }}>
-                  LIVE ESCORT ACTIVE
-                </span>
+            {/* Contact Phone & Email inputs */}
+            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '8px' }}>
+              <div>
+                <label style={{ fontSize: '0.68rem', color: '#8696a0', marginBottom: '3px', display: 'block' }}>
+                  Trusted Phone (SMS/WhatsApp):
+                </label>
+                <input 
+                  type="tel"
+                  placeholder="0803 123 4567"
+                  value={phoneRecipient}
+                  onChange={(e) => setPhoneRecipient(e.target.value)}
+                  style={{
+                    width: '100%',
+                    background: '#111b21',
+                    border: '1px solid #374248',
+                    borderRadius: '10px',
+                    color: '#e9edef',
+                    fontSize: '0.8rem',
+                    padding: '8px 10px',
+                    boxSizing: 'border-box'
+                  }}
+                />
               </div>
-              <p style={{ fontSize: '0.72rem', color: 'var(--text-secondary)', margin: '4px 0 0 0' }}>
-                Walking to <strong>{effectiveDestination}</strong>
-              </p>
-            </div>
 
-            <div style={{ textAlign: 'right' }}>
-              <div style={{ fontSize: '0.7rem', color: 'var(--text-muted)' }}>Duration</div>
-              <div style={{ fontSize: '1.1rem', fontWeight: 800, fontFamily: 'monospace', color: '#f59e0b' }}>
-                <Clock size={13} style={{ display: 'inline', marginRight: '4px' }} />
-                {formatTime(walkDuration)}
-              </div>
-            </div>
-          </div>
-
-          {/* High-Resolution GPS Map */}
-          <GpsMap 
-            lat={currentLat} 
-            lon={currentLon}
-            zoom={17}
-            height={isEmbedded ? '240px' : '320px'}
-            showUserMarker={true}
-            showBreadcrumbTrail={true}
-            onLocationUpdate={(lat, lon) => {
-              setDeviceCoords({ lat, lon });
-            }}
-          />
-
-          {/* Current Coordinates Banner & Direct Google Maps */}
-          <div style={{
-            background: 'var(--bg-secondary)',
-            border: '1px solid var(--border-color)',
-            borderRadius: '12px',
-            padding: '12px',
-            display: 'flex',
-            alignItems: 'center',
-            justifyContent: 'space-between',
-            gap: '8px'
-          }}>
-            <div>
-              <div style={{ fontSize: '0.7rem', color: 'var(--text-muted)' }}>Current GPS Coordinates:</div>
-              <div style={{ fontSize: '0.85rem', fontWeight: 800, color: '#fff', fontFamily: 'monospace' }}>
-                {currentLat.toFixed(5)}° N, {currentLon.toFixed(5)}° E
+              <div>
+                <label style={{ fontSize: '0.68rem', color: '#8696a0', marginBottom: '3px', display: 'block' }}>
+                  Trusted Email:
+                </label>
+                <input 
+                  type="email"
+                  placeholder="parent@gmail.com"
+                  value={emailRecipient}
+                  onChange={(e) => setEmailRecipient(e.target.value)}
+                  style={{
+                    width: '100%',
+                    background: '#111b21',
+                    border: '1px solid #374248',
+                    borderRadius: '10px',
+                    color: '#e9edef',
+                    fontSize: '0.8rem',
+                    padding: '8px 10px',
+                    boxSizing: 'border-box'
+                  }}
+                />
               </div>
             </div>
 
-            <a 
-              href={googleMapsUrl}
-              target="_blank"
-              rel="noreferrer"
+            {/* WhatsApp Big Green Share Button */}
+            <button
+              onClick={handleStartShare}
               style={{
-                background: '#2563eb',
-                color: '#fff',
+                background: '#00a884',
+                color: '#111b21',
                 border: 'none',
-                padding: '8px 12px',
-                borderRadius: '8px',
-                fontSize: '0.75rem',
-                fontWeight: 700,
-                textDecoration: 'none',
+                padding: '13px',
+                borderRadius: '14px',
+                fontSize: '0.95rem',
+                fontWeight: 800,
+                cursor: 'pointer',
                 display: 'flex',
                 alignItems: 'center',
-                gap: '6px'
+                justifyContent: 'center',
+                gap: '8px',
+                boxShadow: '0 4px 14px rgba(0, 168, 132, 0.4)'
               }}
             >
-              <span>Open Google Maps</span>
-              <ExternalLink size={13} />
-            </a>
-          </div>
+              <Send size={18} />
+              <span>Share Live Location</span>
+            </button>
 
-          {/* One-Tap Resend Buttons as Coordinates Update */}
-          <div style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
-            <span style={{ fontSize: '0.72rem', color: 'var(--text-secondary)', fontWeight: 700 }}>
-              Update / Resend Live Location to Contact:
-            </span>
+            {/* Direct Quick-Send Channels */}
             <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: '6px' }}>
               <button 
                 onClick={() => handleSendWhatsApp()}
@@ -838,9 +682,9 @@ Thank you for watching over my walk.`
                   background: '#128c7e',
                   border: 'none',
                   color: '#fff',
-                  borderRadius: '8px',
-                  padding: '8px 4px',
-                  fontSize: '0.72rem',
+                  borderRadius: '10px',
+                  padding: '7px 4px',
+                  fontSize: '0.7rem',
                   fontWeight: 700,
                   cursor: 'pointer',
                   display: 'flex',
@@ -859,9 +703,9 @@ Thank you for watching over my walk.`
                   background: '#2563eb',
                   border: 'none',
                   color: '#fff',
-                  borderRadius: '8px',
-                  padding: '8px 4px',
-                  fontSize: '0.72rem',
+                  borderRadius: '10px',
+                  padding: '7px 4px',
+                  fontSize: '0.7rem',
                   fontWeight: 700,
                   cursor: 'pointer',
                   display: 'flex',
@@ -880,9 +724,9 @@ Thank you for watching over my walk.`
                   background: '#ea580c',
                   border: 'none',
                   color: '#fff',
-                  borderRadius: '8px',
-                  padding: '8px 4px',
-                  fontSize: '0.72rem',
+                  borderRadius: '10px',
+                  padding: '7px 4px',
+                  fontSize: '0.7rem',
                   fontWeight: 700,
                   cursor: 'pointer',
                   display: 'flex',
@@ -898,12 +742,12 @@ Thank you for watching over my walk.`
               <button 
                 onClick={handleCopyDetails}
                 style={{
-                  background: 'var(--bg-tertiary)',
-                  border: '1px solid var(--border-color)',
-                  color: '#fff',
-                  borderRadius: '8px',
-                  padding: '8px 4px',
-                  fontSize: '0.72rem',
+                  background: '#111b21',
+                  border: '1px solid #374248',
+                  color: '#aebac1',
+                  borderRadius: '10px',
+                  padding: '7px 4px',
+                  fontSize: '0.7rem',
                   fontWeight: 700,
                   cursor: 'pointer',
                   display: 'flex',
@@ -913,60 +757,185 @@ Thank you for watching over my walk.`
                 }}
               >
                 <Copy size={13} />
-                <span>Copy</span>
+                <span>Copy Link</span>
               </button>
             </div>
-          </div>
+          </>
+        ) : (
+          /* ========================================= */
+          /* ACTIVE SHARING STATE (WHATSAPP LIVE HUD) */
+          /* ========================================= */
+          <>
+            {/* User Live Beacon Summary */}
+            <div style={{
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'space-between',
+              background: '#111b21',
+              padding: '12px 14px',
+              borderRadius: '12px',
+              border: '1px solid rgba(0, 168, 132, 0.4)'
+            }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+                <div style={{
+                  width: '38px',
+                  height: '38px',
+                  borderRadius: '50%',
+                  background: '#00a884',
+                  color: '#fff',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  fontWeight: 800,
+                  fontSize: '0.85rem'
+                }}>
+                  {getInitials(walkerName)}
+                </div>
+                <div>
+                  <div style={{ fontSize: '0.88rem', fontWeight: 700, color: '#e9edef' }}>
+                    You are sharing live location
+                  </div>
+                  <div style={{ fontSize: '0.72rem', color: '#25d366', fontWeight: 600 }}>
+                    {timeRemainingStr} (until {expiryTimeStr})
+                  </div>
+                </div>
+              </div>
 
-          {/* END ESCORT & EMERGENCY SOS BUTTONS */}
-          <div style={{ display: 'flex', flexDirection: 'column', gap: '8px', marginTop: '6px' }}>
-            <button 
-              onClick={handleEndWalk}
+              <div style={{ textAlign: 'right', fontSize: '0.72rem', color: '#8696a0' }}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: '4px', justifyContent: 'flex-end', color: '#25d366' }}>
+                  <Battery size={14} />
+                  <span>{batteryLevel}%</span>
+                </div>
+                <div>Live Sat GPS</div>
+              </div>
+            </div>
+
+            {/* Comment Note display */}
+            {comment && (
+              <div style={{ fontSize: '0.75rem', color: '#aebac1', fontStyle: 'italic', padding: '0 4px' }}>
+                💬 "{comment}"
+              </div>
+            )}
+
+            {/* Update / Resend Location Row */}
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
+              <span style={{ fontSize: '0.7rem', color: '#8696a0' }}>
+                Resend updated location to contact:
+              </span>
+              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: '6px' }}>
+                <button 
+                  onClick={() => handleSendWhatsApp()}
+                  style={{
+                    background: '#128c7e',
+                    border: 'none',
+                    color: '#fff',
+                    borderRadius: '8px',
+                    padding: '7px 4px',
+                    fontSize: '0.7rem',
+                    fontWeight: 700,
+                    cursor: 'pointer',
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    gap: '4px'
+                  }}
+                >
+                  <MessageSquare size={13} />
+                  <span>WhatsApp</span>
+                </button>
+
+                <button 
+                  onClick={() => handleSendSms()}
+                  style={{
+                    background: '#2563eb',
+                    border: 'none',
+                    color: '#fff',
+                    borderRadius: '8px',
+                    padding: '7px 4px',
+                    fontSize: '0.7rem',
+                    fontWeight: 700,
+                    cursor: 'pointer',
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    gap: '4px'
+                  }}
+                >
+                  <Send size={13} />
+                  <span>SMS</span>
+                </button>
+
+                <button 
+                  onClick={() => handleSendEmail()}
+                  style={{
+                    background: '#ea580c',
+                    border: 'none',
+                    color: '#fff',
+                    borderRadius: '8px',
+                    padding: '7px 4px',
+                    fontSize: '0.7rem',
+                    fontWeight: 700,
+                    cursor: 'pointer',
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    gap: '4px'
+                  }}
+                >
+                  <Mail size={13} />
+                  <span>Email</span>
+                </button>
+
+                <button 
+                  onClick={handleCopyDetails}
+                  style={{
+                    background: '#111b21',
+                    border: '1px solid #374248',
+                    color: '#aebac1',
+                    borderRadius: '8px',
+                    padding: '7px 4px',
+                    fontSize: '0.7rem',
+                    fontWeight: 700,
+                    cursor: 'pointer',
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    gap: '4px'
+                  }}
+                >
+                  <Copy size={13} />
+                  <span>Copy</span>
+                </button>
+              </div>
+            </div>
+
+            {/* WhatsApp Red "Stop Sharing" Button */}
+            <button
+              onClick={handleStopShare}
               style={{
                 width: '100%',
                 padding: '12px',
-                background: 'linear-gradient(135deg, #006837 0%, #064e3b 100%)',
-                border: '1px solid #10b981',
-                borderRadius: '10px',
+                background: '#ea4335',
+                border: 'none',
+                borderRadius: '12px',
                 color: '#fff',
-                fontSize: '0.85rem',
+                fontSize: '0.9rem',
                 fontWeight: 800,
                 cursor: 'pointer',
                 display: 'flex',
                 alignItems: 'center',
                 justifyContent: 'center',
-                gap: '8px'
+                gap: '8px',
+                boxShadow: '0 4px 12px rgba(234, 67, 53, 0.4)'
               }}
             >
-              <CheckCircle size={16} />
-              <span>I Have Arrived Safely (End Walk)</span>
+              <StopCircle size={18} />
+              <span>Stop Sharing</span>
             </button>
+          </>
+        )}
 
-            <a 
-              href="tel:08000003852"
-              style={{
-                width: '100%',
-                padding: '10px',
-                background: 'rgba(239, 68, 68, 0.15)',
-                border: '1px solid #ef4444',
-                borderRadius: '10px',
-                color: '#ef4444',
-                fontSize: '0.8rem',
-                fontWeight: 700,
-                textDecoration: 'none',
-                display: 'flex',
-                alignItems: 'center',
-                justifyContent: 'center',
-                gap: '6px'
-              }}
-            >
-              <ShieldAlert size={15} />
-              <span>Emergency Campus SOS Hotline (0800 000 3852)</span>
-            </a>
-          </div>
-
-        </div>
-      )}
+      </div>
     </div>
   );
 }

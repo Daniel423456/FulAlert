@@ -11,17 +11,20 @@ L.Icon.Default.mergeOptions({
 });
 
 // Custom pulsing HTML icons
-const createPulseIcon = (color = '#0052d4') => {
+const createPulseIcon = (color = '#25d366', initials = '') => {
   return L.divIcon({
     className: 'custom-gps-pin',
     html: `
-      <div style="position: relative; width: 34px; height: 34px; display: flex; align-items: center; justify-content: center; transform: translate(-50%, -50%);">
-        <div style="position: absolute; width: 34px; height: 34px; border-radius: 50%; background: ${color}40; animation: leaflet-pulse 1.6s infinite ease-out; border: 1.5px solid ${color};"></div>
-        <div style="width: 15px; height: 15px; border-radius: 50%; background: ${color}; border: 2.5px solid #ffffff; box-shadow: 0 0 12px ${color};"></div>
+      <div style="position: relative; width: 44px; height: 44px; display: flex; align-items: center; justify-content: center; transform: translate(-50%, -50%);">
+        <div style="position: absolute; width: 44px; height: 44px; border-radius: 50%; background: ${color}33; animation: leaflet-pulse 1.8s infinite ease-out; border: 1.5px solid ${color}88;"></div>
+        <div style="position: absolute; width: 28px; height: 28px; border-radius: 50%; background: ${color}55; animation: leaflet-pulse 1.2s infinite ease-out;"></div>
+        <div style="width: 26px; height: 26px; border-radius: 50%; background: ${color}; border: 2.5px solid #ffffff; box-shadow: 0 0 14px ${color}; display: flex; align-items: center; justify-content: center; font-size: 11px; font-weight: bold; color: #fff; text-transform: uppercase;">
+          ${initials || '🚶'}
+        </div>
       </div>
     `,
-    iconSize: [34, 34],
-    iconAnchor: [17, 17]
+    iconSize: [44, 44],
+    iconAnchor: [22, 22]
   });
 };
 
@@ -56,7 +59,9 @@ export default function GpsMap({
   onMarkerClick = null,
   showUserMarker = true,
   showBreadcrumbTrail = true,
-  onLocationUpdate = null
+  onLocationUpdate = null,
+  userMarkerColor = '#25d366',
+  userMarkerInitials = ''
 }) {
   const mapContainerRef = useRef(null);
   const mapInstanceRef = useRef(null);
@@ -119,7 +124,7 @@ export default function GpsMap({
       // User Marker
       if (showUserMarker) {
         const userMarker = L.marker([lat, lon], {
-          icon: createPulseIcon('#0052d4')
+          icon: createPulseIcon(userMarkerColor, userMarkerInitials)
         }).addTo(map);
         userMarkerRef.current = userMarker;
       }
