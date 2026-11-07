@@ -535,8 +535,8 @@ export default function App() {
 
   return (
     <div className="app-container">
-      {/* If viewing student or admin, show top header with Navigation back to landing */}
-      {currentView !== 'landing' && (
+      {/* If viewing admin or student, show top header with Navigation back to landing */}
+      {currentView !== 'landing' && currentView !== 'walk' && (
         <header className="app-header">
           <div className="logo-section" style={{ cursor: 'pointer' }} onClick={() => navigateTo('landing')}>
             <div className="brand-logo-badge small">
@@ -772,7 +772,7 @@ export default function App() {
           );
         })()
       ) : currentView === 'walk' ? (
-        <div style={{ flex: 1, padding: '24px 16px', maxWidth: '850px', width: '100%', margin: '0 auto' }}>
+        <div className="walk-view-wrapper">
           <WalkWithMe 
             currentUser={currentUser}
             walkWithMeCoords={walkWithMeCoords}

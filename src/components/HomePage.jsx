@@ -77,15 +77,8 @@ export default function HomePage({ onNavigate, currentUser, onOpenAuth, onLogout
     <div className="home-page-container">
       
       {/* Top Navbar */}
-      <nav style={{
-        display: 'flex',
-        alignItems: 'center',
-        justifyContent: 'space-between',
-        padding: '12px 0',
-        borderBottom: '1px solid var(--border-color)',
-        marginBottom: '10px'
-      }}>
-        <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
+      <nav className="home-navbar">
+        <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
           <div className="brand-logo-badge small">
             <img src="/logo.png" alt="FULALERT" style={{ height: '30px', objectFit: 'contain' }} />
           </div>
@@ -95,7 +88,7 @@ export default function HomePage({ onNavigate, currentUser, onOpenAuth, onLogout
           </div>
         </div>
 
-        <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+        <div className="home-nav-actions">
           {/* Walk With Me (No Login Required) Quick Access */}
           <button 
             onClick={() => onNavigate('walk')}
