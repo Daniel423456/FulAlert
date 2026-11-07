@@ -96,6 +96,28 @@ export default function HomePage({ onNavigate, currentUser, onOpenAuth, onLogout
         </div>
 
         <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+          {/* Walk With Me (No Login Required) Quick Access */}
+          <button 
+            onClick={() => onNavigate('walk')}
+            style={{
+              fontSize: '0.78rem',
+              fontWeight: 800,
+              padding: '8px 14px',
+              borderRadius: '10px',
+              background: 'rgba(0, 104, 55, 0.2)',
+              border: '1.5px solid #006837',
+              color: '#10b981',
+              display: 'flex',
+              alignItems: 'center',
+              gap: '6px',
+              cursor: 'pointer'
+            }}
+          >
+            <Navigation size={14} />
+            <span>Walk With Me</span>
+            <span style={{ fontSize: '0.62rem', background: '#006837', color: '#fff', padding: '1px 5px', borderRadius: '4px' }}>Free</span>
+          </button>
+
           {/* Firebase Bypass Toggle */}
           <button 
             onClick={() => setBypassFirebase(prev => !prev)}
@@ -211,6 +233,19 @@ export default function HomePage({ onNavigate, currentUser, onOpenAuth, onLogout
               <ShieldAlert size={20} />
               <span>Launch Student SOS App</span>
               <ArrowRight size={18} />
+            </button>
+
+            <button 
+              className="hero-btn secondary"
+              style={{
+                background: 'linear-gradient(135deg, rgba(0, 104, 55, 0.3) 0%, rgba(6, 78, 59, 0.4) 100%)',
+                border: '1.5px solid #10b981',
+                color: '#fff'
+              }}
+              onClick={() => onNavigate('walk')}
+            >
+              <Navigation size={18} style={{ color: '#10b981' }} />
+              <span>Walk With Me (No Login Needed)</span>
             </button>
 
             <button 
@@ -363,13 +398,31 @@ export default function HomePage({ onNavigate, currentUser, onOpenAuth, onLogout
         <div className="features-grid">
           {features.map((f, idx) => {
             const IconF = f.icon;
+            const isWalkCard = f.title === 'Walk With Me';
             return (
-              <div key={idx} className="feature-card">
+              <div 
+                key={idx} 
+                className="feature-card" 
+                onClick={isWalkCard ? () => onNavigate('walk') : undefined}
+                style={isWalkCard ? { cursor: 'pointer', border: '1.5px solid rgba(0, 104, 55, 0.4)' } : undefined}
+              >
                 <div className="feature-icon-wrapper" style={{ color: f.color, backgroundColor: `${f.color}15` }}>
                   <IconF size={26} />
                 </div>
-                <h3>{f.title}</h3>
+                <h3>
+                  {f.title}
+                  {isWalkCard && (
+                    <span style={{ fontSize: '0.65rem', marginLeft: '8px', background: '#006837', color: '#fff', padding: '2px 6px', borderRadius: '4px', verticalAlign: 'middle' }}>
+                      Try Now
+                    </span>
+                  )}
+                </h3>
                 <p>{f.desc}</p>
+                {isWalkCard && (
+                  <div style={{ marginTop: '8px', fontSize: '0.75rem', color: '#10b981', fontWeight: 700, display: 'flex', alignItems: 'center', gap: '4px' }}>
+                    <span>Launch Companion Escort (No Login) →</span>
+                  </div>
+                )}
               </div>
             );
           })}

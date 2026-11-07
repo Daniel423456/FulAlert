@@ -1,7 +1,8 @@
 import React, { useState, useEffect } from 'react';
-import { Shield, Bell, Zap, Clock } from 'lucide-react';
+import { Shield, Bell, Zap, Clock, Navigation } from 'lucide-react';
 import StudentPortal from './components/StudentPortal';
 import AdminDashboard from './components/AdminDashboard';
+import WalkWithMe from './components/WalkWithMe';
 import HomePage from './components/HomePage';
 import AuthModal from './components/AuthModal';
 import InstallPwaModal from './components/InstallPwaModal';
@@ -128,6 +129,10 @@ export default function App() {
       // Return sub-route, clean trailing slashes
       const subPath = path.substring(1).replace(/\/$/, ''); // e.g. 'admin/security'
       return subPath || 'admin';
+    }
+
+    if (hash.startsWith('#/walk') || path.startsWith('/walk') || hash.startsWith('#/track') || path.startsWith('/track')) {
+      return 'walk';
     }
 
     if (hash === '#/student' || path.startsWith('/student')) return 'student';
@@ -276,6 +281,8 @@ export default function App() {
       const hash = window.location.hash;
       if (hash.startsWith('#/admin')) {
         setCurrentView(hash.replace('#/', ''));
+      } else if (hash.startsWith('#/walk') || hash.startsWith('#/track')) {
+        setCurrentView('walk');
       } else if (hash === '#/student') {
         setCurrentView('student');
       } else {
@@ -677,6 +684,34 @@ export default function App() {
                   Create Account
                 </button>
               </div>
+
+              {/* Instant Walk With Me (No Login Required) */}
+              <div style={{ marginTop: '24px', paddingTop: '16px', borderTop: '1px solid var(--border-color)', width: '100%', maxWidth: '360px' }}>
+                <p style={{ fontSize: '0.75rem', color: 'var(--text-muted)', marginBottom: '10px' }}>
+                  Walking across campus at night? No account needed:
+                </p>
+                <button 
+                  onClick={() => navigateTo('walk')}
+                  style={{
+                    width: '100%',
+                    background: 'rgba(0, 104, 55, 0.2)',
+                    border: '1.5px solid #006837',
+                    color: '#10b981',
+                    padding: '11px 16px',
+                    borderRadius: '10px',
+                    fontSize: '0.85rem',
+                    fontWeight: 700,
+                    cursor: 'pointer',
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    gap: '8px'
+                  }}
+                >
+                  <Navigation size={16} />
+                  <span>Launch Walk With Me (No Login Needed)</span>
+                </button>
+              </div>
             </div>
           )}
         </div>
@@ -736,6 +771,16 @@ export default function App() {
             </div>
           );
         })()
+      ) : currentView === 'walk' ? (
+        <div style={{ flex: 1, padding: '24px 16px', maxWidth: '850px', width: '100%', margin: '0 auto' }}>
+          <WalkWithMe 
+            currentUser={currentUser}
+            walkWithMeCoords={walkWithMeCoords}
+            CAMPUS_LOCATIONS={CAMPUS_LOCATIONS}
+            onBackToHome={() => navigateTo('landing')}
+            isEmbedded={false}
+          />
+        </div>
       ) : null}
 
       {/* Global Authentication Modal */}

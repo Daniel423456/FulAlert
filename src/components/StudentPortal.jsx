@@ -24,6 +24,7 @@ import {
   Activity
 } from 'lucide-react';
 import GpsMap from './GpsMap';
+import WalkWithMe from './WalkWithMe';
 import { audioAlerts, emergencyBus } from '../utils/audioAlerts';
 import { pushAlertToCloud, updateAlertInCloud } from '../services/firebase';
 
@@ -450,11 +451,11 @@ export default function StudentPortal({
                     🟢 Verified
                   </span>
                 </div>
-                <p style={{ fontSize: '0.9rem', fontWeight: 800, marginTop: '4px', color: '#fff' }}>{currentUser.fullName || currentUser.name}</p>
+                <p style={{ fontSize: '0.9rem', fontWeight: 800, marginTop: '4px', color: '#fff' }}>{currentUser?.fullName || currentUser?.name || 'Student'}</p>
                 <p style={{ fontSize: '0.72rem', color: 'var(--text-secondary)' }}>
-                  Matric: <strong>{currentUser.matric}</strong>
+                  Matric: <strong>{currentUser?.matric || 'GUEST'}</strong>
                 </p>
-                {currentUser.strikes > 0 && (
+                {currentUser?.strikes > 0 && (
                   <p style={{ color: 'var(--accent-sos)', fontSize: '0.7rem', fontWeight: 'bold', marginTop: '4px' }}>
                     ⚠️ Penalty Warning: {currentUser.strikes} False Alarm Strikes
                   </p>
@@ -883,112 +884,12 @@ export default function StudentPortal({
 
           {/* 2. Walk With Me Tab */}
           {activeTab === 'walk' && (
-            <div style={{ display: 'flex', flexDirection: 'column', gap: '16px', flex: 1 }}>
-              <div style={{ textAlign: 'center', margin: '6px 0' }}>
-                <Navigation size={30} style={{ color: '#6366f1' }} />
-                <h3 style={{ fontSize: '1.1rem', marginTop: '6px' }}>Walk With Me</h3>
-                <p style={{ fontSize: '0.75rem', color: 'var(--text-secondary)', marginTop: '2px' }}>
-                  Live GPS escort sharing with your trusted friend during night movement
-                </p>
-              </div>
-
-              {!walkWithMeActive ? (
-                <>
-                  {/* Map Preview Card */}
-                  <div style={{ 
-                    position: 'relative', 
-                    height: '160px', 
-                    borderRadius: '16px', 
-                    overflow: 'hidden', 
-                    border: '1px solid var(--border-color)',
-                    boxShadow: '0 6px 20px rgba(0,0,0,0.4)'
-                  }}>
-                    <img 
-                      src="/campus_night_map.jpg" 
-                      alt="Campus GPS Satellite Map" 
-                      style={{ width: '100%', height: '100%', objectFit: 'cover', filter: 'brightness(0.8)' }} 
-                    />
-                    <div style={{ position: 'absolute', inset: 0, background: 'linear-gradient(to top, rgba(10,11,16,0.9) 0%, transparent 60%)' }} />
-                    <div style={{ position: 'absolute', bottom: '12px', left: '12px', right: '12px', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                      <span style={{ fontSize: '0.7rem', color: '#f8fafc', fontWeight: 600, display: 'flex', alignItems: 'center', gap: '4px' }}>
-                        <MapPin size={13} style={{ color: '#6366f1' }} /> Campus Safe Walkways Monitored
-                      </span>
-                      <span style={{ fontSize: '0.65rem', background: 'rgba(16,185,129,0.2)', color: '#10b981', padding: '2px 6px', borderRadius: '4px', fontWeight: 600 }}>
-                        ● Active Sat-GPS
-                      </span>
-                    </div>
-                  </div>
-
-                  <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
-                    <label style={{ fontSize: '0.75rem', color: 'var(--text-secondary)' }}>Trusted Friend Phone or Email:</label>
-                    <input 
-                      type="text" 
-                      placeholder="e.g. 08012345678 or friend@university.edu.ng" 
-                      value={trustedFriend} 
-                      onChange={(e) => setTrustedFriend(e.target.value)} 
-                    />
-                  </div>
-
-                  <button 
-                    className="action-btn ack" 
-                    onClick={() => {
-                      if (!trustedFriend) {
-                        alert('Please enter a trusted contact first!');
-                        return;
-                      }
-                      setWalkWithMeActive(true);
-                    }}
-                    style={{ width: '100%', padding: '12px', background: 'linear-gradient(135deg, #6366f1 0%, #4338ca 100%)', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '8px' }}
-                  >
-                    <Navigation size={16} /> Start Live Path Escort
-                  </button>
-                </>
-              ) : (
-                <div style={{ display: 'flex', flexDirection: 'column', gap: '12px', textAlign: 'center' }}>
-                  <div style={{ background: 'rgba(99, 102, 241, 0.1)', border: '1px solid rgba(99, 102, 241, 0.2)', padding: '10px', borderRadius: '12px' }}>
-                    <span className="status-badge" style={{ margin: '0 auto 6px auto', display: 'table' }}>
-                      <span className="status-dot"></span> Live Telemetry Active
-                    </span>
-                    <p style={{ fontSize: '0.75rem', color: 'var(--text-secondary)' }}>
-                      Broadcasting real-time position coordinates to <strong>{trustedFriend}</strong>.
-                    </p>
-                    
-                    <div className="share-link-box" style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '8px 12px', gap: '8px', marginTop: '8px' }}>
-                      <span style={{ fontSize: '0.7rem', color: '#6366f1', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
-                        {window.location.origin}/#/track/{currentUser.matric.replace(/\//g, '')}
-                      </span>
-                      <button 
-                        onClick={() => {
-                          navigator.clipboard?.writeText(`${window.location.origin}/#/track/${currentUser.matric.replace(/\//g, '')}`);
-                          alert('Live tracking link copied to clipboard!');
-                        }}
-                        style={{ fontSize: '0.65rem', background: '#6366f1', color: '#fff', padding: '4px 8px', borderRadius: '6px', flexShrink: 0 }}
-                      >
-                        Copy Link
-                      </button>
-                    </div>
-                  </div>
-
-                  {/* High-Performance Real-Time GPS Tracking Map */}
-                  <GpsMap 
-                    lat={9.08 + walkWithMeCoords.y/10000} 
-                    lon={7.53 + walkWithMeCoords.x/10000}
-                    zoom={17}
-                    height="270px"
-                    showUserMarker={true}
-                    showBreadcrumbTrail={true}
-                  />
-
-                  <button 
-                    className="action-btn false-alarm" 
-                    onClick={() => setWalkWithMeActive(false)}
-                    style={{ width: '100%', padding: '10px' }}
-                  >
-                    End Escort & Stop Sharing Path
-                  </button>
-                </div>
-              )}
-            </div>
+            <WalkWithMe 
+              currentUser={currentUser} 
+              walkWithMeCoords={walkWithMeCoords} 
+              CAMPUS_LOCATIONS={CAMPUS_LOCATIONS} 
+              isEmbedded={true} 
+            />
           )}
 
           {/* 3. History & Feedback Tab */}
@@ -996,11 +897,11 @@ export default function StudentPortal({
             <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
               <h3 style={{ fontSize: '1rem', borderBottom: '1px solid var(--border-color)', paddingBottom: '8px' }}>Alert History</h3>
               
-              {alerts.filter(a => a.senderMatric === currentUser.matric || (a.isAnonymous && currentUser.matric === 'UG/20/SCI/1021' /* Allow viewing for simulator user */)).length === 0 ? (
+              {alerts.filter(a => (currentUser?.matric && a.senderMatric === currentUser.matric) || (a.isAnonymous && currentUser?.matric === 'UG/20/SCI/1021' /* Allow viewing for simulator user */)).length === 0 ? (
                 <p style={{ fontSize: '0.75rem', color: 'var(--text-secondary)', textAlign: 'center', marginTop: '20px' }}>No logged emergency alerts.</p>
               ) : (
                 alerts
-                  .filter(a => a.senderMatric === currentUser.matric || (a.isAnonymous && currentUser.matric === 'UG/20/SCI/1021'))
+                  .filter(a => (currentUser?.matric && a.senderMatric === currentUser.matric) || (a.isAnonymous && currentUser?.matric === 'UG/20/SCI/1021'))
                   .map(alert => (
                     <div key={alert.id} className="history-item">
                       <div className="history-header">
@@ -1071,27 +972,27 @@ export default function StudentPortal({
                   <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '10px' }}>
                     <div>
                       <span style={{ fontSize: '0.65rem', color: 'var(--text-secondary)' }}>Full Name:</span>
-                      <p style={{ fontSize: '0.8rem', fontWeight: 600 }}>{currentUser.name}</p>
+                      <p style={{ fontSize: '0.8rem', fontWeight: 600 }}>{currentUser?.name || 'Guest User'}</p>
                     </div>
                     <div>
                       <span style={{ fontSize: '0.65rem', color: 'var(--text-secondary)' }}>Matric ID / Staff ID:</span>
-                      <p style={{ fontSize: '0.8rem', fontWeight: 600 }}>{currentUser.matric}</p>
+                      <p style={{ fontSize: '0.8rem', fontWeight: 600 }}>{currentUser?.matric || 'GUEST'}</p>
                     </div>
                   </div>
 
                   <div>
                     <span style={{ fontSize: '0.65rem', color: 'var(--text-secondary)' }}>Allergies / Special Medical Notes:</span>
-                    <p style={{ fontSize: '0.8rem', fontWeight: 600 }}>{currentUser.allergies || 'None'}</p>
+                    <p style={{ fontSize: '0.8rem', fontWeight: 600 }}>{currentUser?.allergies || 'None'}</p>
                   </div>
 
                   <div>
                     <span style={{ fontSize: '0.65rem', color: 'var(--text-secondary)' }}>Next of Kin:</span>
-                    <p style={{ fontSize: '0.8rem', fontWeight: 600 }}>{currentUser.emergencyContact}</p>
+                    <p style={{ fontSize: '0.8rem', fontWeight: 600 }}>{currentUser?.emergencyContact || 'Campus Security'}</p>
                   </div>
 
                   <div>
                     <span style={{ fontSize: '0.65rem', color: 'var(--text-secondary)' }}>Verified Email:</span>
-                    <p style={{ fontSize: '0.8rem', fontWeight: 600 }}>{currentUser.email}</p>
+                    <p style={{ fontSize: '0.8rem', fontWeight: 600 }}>{currentUser?.email || 'Not logged in'}</p>
                   </div>
 
                   <button 
