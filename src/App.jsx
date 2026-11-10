@@ -6,6 +6,7 @@ import WalkWithMe from './components/WalkWithMe';
 import HomePage from './components/HomePage';
 import AuthModal from './components/AuthModal';
 import InstallPwaModal from './components/InstallPwaModal';
+import LocationPromptModal from './components/LocationPromptModal';
 import { 
   subscribeToCloudAlerts, 
   subscribeToCloudBroadcasts, 
@@ -164,6 +165,17 @@ export default function App() {
     return parsed;
   });
 
+  // Post-Login Location Permission & Live Coordinates State
+  const [showLocationPrompt, setShowLocationPrompt] = useState(false);
+  const [userLocation, setUserLocation] = useState(() => {
+    try {
+      const saved = sessionStorage.getItem('fulalert_user_coords') || localStorage.getItem('fulalert_user_coords');
+      return saved ? JSON.parse(saved) : null;
+    } catch (e) {
+      return null;
+    }
+  });
+
   const [bypassFirebase, setBypassFirebase] = useState(() => {
     return localStorage.getItem('fulalert_bypass_firebase') === 'true';
   });
@@ -229,6 +241,43 @@ export default function App() {
     return () => unsubscribeAuth();
   }, []);
 
+  // Automatically prompt logged-in users to turn on location if not yet allowed/dismissed
+  useEffect(() => {
+    if (!currentUser) return;
+    const dismissed = sessionStorage.getItem('fulalert_loc_prompt_dismissed');
+    const coords = sessionStorage.getItem('fulalert_user_coords') || localStorage.getItem('fulalert_user_coords');
+    if (!dismissed && !coords) {
+      if ('permissions' in navigator && navigator.permissions.query) {
+        navigator.permissions.query({ name: 'geolocation' }).then(result => {
+          if (result.state !== 'granted') {
+            setShowLocationPrompt(true);
+          } else {
+            // Quietly fetch GPS if already permitted
+            navigator.geolocation?.getCurrentPosition(
+              (pos) => {
+                const c = {
+                  latitude: Number(pos.coords.latitude.toFixed(6)),
+                  longitude: Number(pos.coords.longitude.toFixed(6)),
+                  accuracy: Math.round(pos.coords.accuracy || 10),
+                  timestamp: Date.now()
+                };
+                setUserLocation(c);
+                localStorage.setItem('fulalert_user_coords', JSON.stringify(c));
+                sessionStorage.setItem('fulalert_user_coords', JSON.stringify(c));
+              },
+              () => {},
+              { enableHighAccuracy: true, timeout: 6000 }
+            );
+          }
+        }).catch(() => {
+          setShowLocationPrompt(true);
+        });
+      } else {
+        setShowLocationPrompt(true);
+      }
+    }
+  }, [currentUser]);
+
   const handleAuthSuccess = (user, role) => {
     setCurrentUser(user);
     if (role === 'student') {
@@ -237,6 +286,9 @@ export default function App() {
       sessionStorage.setItem('fulalert_auth_user', JSON.stringify(user));
     }
     
+    // Prompt user to enable & turn on location immediately upon login
+    setShowLocationPrompt(true);
+
     if (role === 'student') {
       navigateTo('student');
     } else {
@@ -551,25 +603,51 @@ export default function App() {
           <div className="system-status">
             {/* Real User Profile Chip */}
             {currentUser ? (
-              <div style={{
-                display: 'flex',
-                alignItems: 'center',
-                gap: '8px',
-                background: 'var(--bg-secondary)',
-                border: '1px solid var(--border-color)',
-                padding: '5px 14px',
-                borderRadius: '20px',
-                marginRight: '8px',
-                fontSize: '0.78rem'
-              }}>
-                <div style={{ width: '7px', height: '7px', borderRadius: '50%', background: '#10b981' }}></div>
-                <strong>{currentUser.name}</strong>
-                <span style={{ color: 'var(--text-muted)' }}>({currentUser.matric || currentUser.badgeId})</span>
-                <button 
-                  onClick={handleLogout}
-                  style={{ marginLeft: '6px', fontSize: '0.7rem', color: 'var(--accent-sos)', fontWeight: 700, borderLeft: '1px solid var(--border-color)', paddingLeft: '8px' }}
+              <div style={{ display: 'flex', alignItems: 'center' }}>
+                <div style={{
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: '8px',
+                  background: 'var(--bg-secondary)',
+                  border: '1px solid var(--border-color)',
+                  padding: '5px 14px',
+                  borderRadius: '20px',
+                  marginRight: '8px',
+                  fontSize: '0.78rem'
+                }}>
+                  <div style={{ width: '7px', height: '7px', borderRadius: '50%', background: '#10b981' }}></div>
+                  <strong>{currentUser.name}</strong>
+                  <span style={{ color: 'var(--text-muted)' }}>({currentUser.matric || currentUser.badgeId})</span>
+                  <button 
+                    onClick={handleLogout}
+                    style={{ marginLeft: '6px', fontSize: '0.7rem', color: 'var(--accent-sos)', fontWeight: 700, borderLeft: '1px solid var(--border-color)', paddingLeft: '8px' }}
+                  >
+                    Logout
+                  </button>
+                </div>
+
+                {/* Location GPS Status / Quick Toggle Button */}
+                <button
+                  type="button"
+                  onClick={() => setShowLocationPrompt(true)}
+                  title={userLocation ? `Location active (${userLocation.latitude}, ${userLocation.longitude}). Tap to refresh.` : "Location inactive. Tap to allow & enable."}
+                  style={{
+                    display: 'inline-flex',
+                    alignItems: 'center',
+                    gap: '5px',
+                    fontSize: '0.72rem',
+                    padding: '5px 12px',
+                    background: userLocation ? 'rgba(16, 185, 129, 0.15)' : 'rgba(245, 158, 11, 0.15)',
+                    border: userLocation ? '1px solid rgba(16, 185, 129, 0.4)' : '1px solid rgba(245, 158, 11, 0.4)',
+                    borderRadius: '20px',
+                    color: userLocation ? '#34d399' : '#fbbf24',
+                    fontWeight: 700,
+                    marginRight: '8px',
+                    cursor: 'pointer'
+                  }}
                 >
-                  Logout
+                  <Navigation size={12} className={userLocation ? "" : "live-pulse"} />
+                  <span>{userLocation ? 'GPS: Active' : '📍 Enable GPS'}</span>
                 </button>
               </div>
             ) : (
@@ -639,6 +717,8 @@ export default function App() {
           onLogout={handleLogout} 
           bypassFirebase={bypassFirebase}
           setBypassFirebase={setBypassFirebase}
+          userLocation={userLocation}
+          onOpenLocationPrompt={() => setShowLocationPrompt(true)}
         />
       ) : currentView === 'student' ? (
         /* Student view full screen wrapper */
@@ -658,6 +738,8 @@ export default function App() {
               walkWithMeCoords={walkWithMeCoords}
               CAMPUS_LOCATIONS={CAMPUS_LOCATIONS}
               bypassFirebase={bypassFirebase}
+              userLocation={userLocation}
+              onOpenLocationPrompt={() => setShowLocationPrompt(true)}
             />
           ) : (
             <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', height: '100%', padding: '32px', textAlign: 'center' }}>
@@ -734,6 +816,7 @@ export default function App() {
                 onLoginSuccess={(officerUser) => {
                   setCurrentUser(officerUser);
                   sessionStorage.setItem('fulalert_auth_user', JSON.stringify(officerUser));
+                  setShowLocationPrompt(true);
                   if (bypassFirebase) {
                     setUsers(prev => {
                       if (!prev.some(u => u.badgeId === officerUser.badgeId)) {
@@ -793,6 +876,16 @@ export default function App() {
         users={users}
         setUsers={setUsers}
         bypassFirebase={bypassFirebase}
+      />
+
+      {/* Post-Login Device Location Permission Prompt */}
+      <LocationPromptModal 
+        isOpen={showLocationPrompt}
+        onClose={() => setShowLocationPrompt(false)}
+        currentUser={currentUser}
+        onLocationGranted={(coords) => {
+          setUserLocation(coords);
+        }}
       />
 
       {/* Progressive Web App Install Prompt */}

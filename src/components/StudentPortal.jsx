@@ -110,7 +110,9 @@ export default function StudentPortal({
   setWalkWithMeActive,
   walkWithMeCoords,
   CAMPUS_LOCATIONS,
-  bypassFirebase = false
+  bypassFirebase = false,
+  userLocation = null,
+  onOpenLocationPrompt
 }) {
   const [activeTab, setActiveTab] = useState('sos'); // 'sos', 'walk', 'contacts', 'history', 'profile'
   const [activeCategory, setActiveCategory] = useState('security'); // default
@@ -125,8 +127,27 @@ export default function StudentPortal({
   const [holdProgress, setHoldProgress] = useState(0);
   const holdIntervalRef = useRef(null);
   
-  // Incident input states
-  const [customLocation, setCustomLocation] = useState('');
+  // Incident input states (pre-populated with GPS if user granted location)
+  const [customLocation, setCustomLocation] = useState(() => {
+    if (userLocation && userLocation.latitude && userLocation.longitude) {
+      return `GPS: ${userLocation.latitude.toFixed(4)}, ${userLocation.longitude.toFixed(4)} (Campus Precision)`;
+    }
+    const saved = sessionStorage.getItem('fulalert_user_coords') || localStorage.getItem('fulalert_user_coords');
+    if (saved) {
+      try {
+        const c = JSON.parse(saved);
+        return `GPS: ${c.latitude.toFixed(4)}, ${c.longitude.toFixed(4)} (Campus Precision)`;
+      } catch (e) {}
+    }
+    return '';
+  });
+
+  // Update customLocation when userLocation becomes available if field is empty
+  useEffect(() => {
+    if (userLocation && (!customLocation || customLocation === 'Main Campus Quadrangle')) {
+      setCustomLocation(`GPS: ${userLocation.latitude.toFixed(4)}, ${userLocation.longitude.toFixed(4)} (Campus Precision)`);
+    }
+  }, [userLocation]);
   const [incidentDescription, setIncidentDescription] = useState('');
 
   // Toggle states
@@ -291,7 +312,22 @@ export default function StudentPortal({
   };
 
   const triggerSOS = () => {
-    let locName = customLocation.trim() || 'University Campus (Live Location)';
+    let currentSavedCoords = userLocation;
+    if (!currentSavedCoords) {
+      try {
+        const raw = sessionStorage.getItem('fulalert_user_coords') || localStorage.getItem('fulalert_user_coords');
+        if (raw) currentSavedCoords = JSON.parse(raw);
+      } catch (e) {}
+    }
+
+    let locName = customLocation.trim();
+    if (!locName && currentSavedCoords) {
+      locName = `GPS: ${currentSavedCoords.latitude}, ${currentSavedCoords.longitude} (Accuracy ±${currentSavedCoords.accuracy || 10}m)`;
+    }
+    if (!locName) {
+      locName = 'University Campus (Live Location)';
+    }
+
     let resolvedCoords = resolveLocationCoordinates(locName);
 
     const newAlert = {
@@ -311,6 +347,8 @@ export default function StudentPortal({
       status: 'pending',
       locationName: locName,
       coordinates: resolvedCoords,
+      gpsCoords: currentSavedCoords || null,
+      mapUrl: currentSavedCoords ? `https://maps.google.com/?q=${currentSavedCoords.latitude},${currentSavedCoords.longitude}` : null,
       assignedResponder: getCategoryResponder(activeCategory),
       responderNotes: [],
       attachmentUrl: mediaFileUrl || null,
@@ -512,9 +550,11 @@ export default function StudentPortal({
                         <button 
                           type="button"
                           onClick={() => {
-                            if (navigator.geolocation) {
+                            if (onOpenLocationPrompt) {
+                              onOpenLocationPrompt();
+                            } else if (navigator.geolocation) {
                               navigator.geolocation.getCurrentPosition(
-                                (pos) => setCustomLocation(`GPS: ${pos.coords.latitude.toFixed(4)}, ${pos.coords.longitude.toFixed(4)} (Campus)`),
+                                (pos) => setCustomLocation(`GPS: ${pos.coords.latitude.toFixed(4)}, ${pos.coords.longitude.toFixed(4)} (Campus Precision)`),
                                 () => setCustomLocation('Main Campus Quadrangle')
                               );
                             } else {
@@ -522,20 +562,52 @@ export default function StudentPortal({
                             }
                           }}
                           style={{
-                            padding: '8px 10px',
-                            background: 'rgba(0, 82, 212, 0.2)',
-                            border: '1px solid rgba(0, 82, 212, 0.4)',
-                            color: '#60a5fa',
+                            padding: '8px 12px',
+                            background: userLocation ? 'rgba(16, 185, 129, 0.2)' : 'rgba(0, 104, 55, 0.25)',
+                            border: userLocation ? '1px solid rgba(16, 185, 129, 0.5)' : '1px solid #006837',
+                            color: userLocation ? '#34d399' : '#10b981',
                             borderRadius: '8px',
-                            fontSize: '0.7rem',
+                            fontSize: '0.72rem',
                             fontWeight: 700,
                             cursor: 'pointer',
-                            whiteSpace: 'nowrap'
+                            whiteSpace: 'nowrap',
+                            display: 'flex',
+                            alignItems: 'center',
+                            gap: '4px'
                           }}
                           title="Auto-fill with live device GPS"
                         >
-                          🎯 GPS
+                          <span>🎯 {userLocation ? 'GPS Synced' : 'Sync GPS'}</span>
                         </button>
+                      </div>
+
+                      {/* GPS Precision Helper Indicator */}
+                      <div style={{ marginTop: '2px', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+                        {userLocation ? (
+                          <span style={{ fontSize: '0.68rem', color: '#10b981', display: 'flex', alignItems: 'center', gap: '4px' }}>
+                            <span style={{ width: '6px', height: '6px', borderRadius: '50%', background: '#10b981', display: 'inline-block' }}></span>
+                            <span>GPS Active ({userLocation.latitude.toFixed(3)}, {userLocation.longitude.toFixed(3)} • ±{userLocation.accuracy || 5}m)</span>
+                          </span>
+                        ) : (
+                          <button
+                            type="button"
+                            onClick={() => onOpenLocationPrompt && onOpenLocationPrompt()}
+                            style={{
+                              background: 'none',
+                              border: 'none',
+                              color: '#f59e0b',
+                              fontSize: '0.68rem',
+                              fontWeight: 600,
+                              cursor: 'pointer',
+                              padding: 0,
+                              display: 'flex',
+                              alignItems: 'center',
+                              gap: '4px'
+                            }}
+                          >
+                            <span>⚠️ Location not turned on. Tap here to enable.</span>
+                          </button>
+                        )}
                       </div>
                     </div>
 

@@ -18,7 +18,16 @@ import {
   ChevronRight
 } from 'lucide-react';
 
-export default function HomePage({ onNavigate, currentUser, onOpenAuth, onLogout, bypassFirebase, setBypassFirebase }) {
+export default function HomePage({ 
+  onNavigate, 
+  currentUser, 
+  onOpenAuth, 
+  onLogout, 
+  bypassFirebase, 
+  setBypassFirebase,
+  userLocation,
+  onOpenLocationPrompt
+}) {
   const hotlines = [
     { title: 'Campus Security', phone: '+234 803 111 0001', icon: Shield, color: '#ef4444' },
     { title: 'Health Centre', phone: '+234 803 222 0002', icon: HeartPulse, color: '#10b981' },
@@ -129,7 +138,7 @@ export default function HomePage({ onNavigate, currentUser, onOpenAuth, onLogout
           </button>
 
           {currentUser ? (
-            <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '8px', flexWrap: 'wrap' }}>
               <div style={{ 
                 display: 'flex', 
                 alignItems: 'center', 
@@ -143,6 +152,30 @@ export default function HomePage({ onNavigate, currentUser, onOpenAuth, onLogout
                 <span style={{ fontSize: '0.8rem', fontWeight: 700 }}>{currentUser.name}</span>
                 <span style={{ fontSize: '0.7rem', color: 'var(--text-muted)' }}>({currentUser.matric || currentUser.badgeId})</span>
               </div>
+
+              {onOpenLocationPrompt && (
+                <button 
+                  onClick={onOpenLocationPrompt}
+                  title={userLocation ? `GPS active (${userLocation.latitude}, ${userLocation.longitude})` : "Location inactive. Tap to allow & enable."}
+                  style={{ 
+                    fontSize: '0.72rem', 
+                    padding: '6px 12px', 
+                    background: userLocation ? 'rgba(16, 185, 129, 0.15)' : 'rgba(245, 158, 11, 0.15)', 
+                    border: userLocation ? '1px solid rgba(16, 185, 129, 0.4)' : '1px solid rgba(245, 158, 11, 0.4)', 
+                    borderRadius: '20px', 
+                    color: userLocation ? '#34d399' : '#fbbf24',
+                    fontWeight: 700,
+                    cursor: 'pointer',
+                    display: 'flex',
+                    alignItems: 'center',
+                    gap: '4px'
+                  }}
+                >
+                  <Navigation size={12} className={userLocation ? "" : "live-pulse"} />
+                  <span>{userLocation ? 'GPS: Active' : '📍 Enable GPS'}</span>
+                </button>
+              )}
+
               <button 
                 onClick={onLogout}
                 style={{ fontSize: '0.75rem', padding: '6px 12px', background: 'var(--bg-tertiary)', border: '1px solid var(--border-color)', borderRadius: '8px', color: 'var(--text-secondary)' }}

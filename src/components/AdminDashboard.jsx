@@ -932,7 +932,32 @@ export default function AdminDashboard({
                       <p><strong>Phone:</strong> {selectedAlert.senderPhone}</p>
                       <p><strong>Medical Details / Allergies:</strong> {selectedAlert.senderAllergies}</p>
                       <p><strong>Next of Kin:</strong> {selectedAlert.senderContact}</p>
-                      <p><strong>Location Spot:</strong> <span style={{ color: '#60a5fa', fontWeight: 700 }}>{selectedAlert.locationName}</span></p>
+                      <p style={{ display: 'flex', alignItems: 'center', flexWrap: 'wrap', gap: '6px' }}>
+                        <strong>Location Spot:</strong> 
+                        <span style={{ color: '#60a5fa', fontWeight: 700 }}>{selectedAlert.locationName}</span>
+                        {(selectedAlert.mapUrl || selectedAlert.gpsCoords) && (
+                          <a 
+                            href={selectedAlert.mapUrl || `https://maps.google.com/?q=${selectedAlert.gpsCoords.latitude},${selectedAlert.gpsCoords.longitude}`}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            style={{
+                              display: 'inline-flex',
+                              alignItems: 'center',
+                              gap: '4px',
+                              padding: '2px 8px',
+                              background: 'rgba(16, 185, 129, 0.2)',
+                              border: '1px solid #10b981',
+                              color: '#34d399',
+                              borderRadius: '6px',
+                              fontSize: '0.68rem',
+                              fontWeight: 700,
+                              textDecoration: 'none'
+                            }}
+                          >
+                            📍 View on Google Maps
+                          </a>
+                        )}
+                      </p>
                       <p><strong>Assigned Response Unit:</strong> <span style={{ color: 'var(--brand-orange)', fontWeight: 700 }}>{selectedAlert.assignedResponder || (selectedAlert.category === 'medical' ? 'University Health Centre' : 'Campus Security Unit')}</span></p>
                       <p><strong>Dispatch Method:</strong> Triggered via {selectedAlert.triggeredVia.toUpperCase()}</p>
                       
