@@ -1376,8 +1376,7 @@ export default function StudentPortal({
             </div>
           )}
 
-          {/* Bottom Nav Safe Spacer - guarantees the down part shows 100% completely above bottom buttons */}
-          <div className="bottom-nav-safe-spacer" style={{ height: 'calc(110px + env(safe-area-inset-bottom, 24px))', width: '100%', flexShrink: 0 }} />
+          {/* Bottom padding spacer — handled by CSS padding-bottom on .phone-content */}
         </div>
 
         {/* Phone Bottom Tab Navigator */}

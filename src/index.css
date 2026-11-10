@@ -349,7 +349,8 @@ input:focus, select:focus, textarea:focus {
   overflow-y: auto;
   -webkit-overflow-scrolling: touch;
   padding: 16px;
-  padding-bottom: calc(115px + env(safe-area-inset-bottom, 24px));
+  /* On desktop this is overridden. On mobile: 64px nav + 24px buffer + safe area */
+  padding-bottom: calc(88px + env(safe-area-inset-bottom, 20px));
 }
 
 .phone-content::-webkit-scrollbar {
@@ -646,32 +647,38 @@ input:checked + .slider:before {
 }
 
 
-/* Navigation tabs for mobile simulator */
+/* Navigation tabs — mobile bottom bar */
 .phone-navbar {
   display: grid;
   grid-template-columns: repeat(5, 1fr);
   border-top: 1px solid var(--border-color);
   background: var(--bg-secondary);
-  height: 60px;
   align-items: center;
+  min-height: 64px;
 }
 
 .nav-tab {
   display: flex;
   flex-direction: column;
   align-items: center;
+  justify-content: center;
   color: var(--text-muted);
-  font-size: 0.65rem;
-  gap: 4px;
+  font-size: 0.72rem;
+  font-weight: 500;
+  gap: 5px;
+  padding: 10px 0;
+  min-height: 56px;
+  cursor: pointer;
+  transition: color 0.15s;
 }
 
 .nav-tab.active {
-  color: #6366f1;
+  color: #10b981;
 }
 
 .nav-tab svg {
-  width: 18px;
-  height: 18px;
+  width: 22px;
+  height: 22px;
 }
 
 /* Contact Directory Cards */
@@ -2341,8 +2348,8 @@ input:checked + .slider:before {
     display: none !important;
   }
   .phone-content {
-    padding: 24px 28px !important;
-    overflow-y: visible !important;
+    padding: 24px 28px 32px 28px !important;
+    overflow-y: auto !important;
   }
   .bottom-nav-safe-spacer {
     display: none !important;
@@ -2534,18 +2541,30 @@ input:checked + .slider:before {
     bottom: 0 !important;
     left: 0 !important;
     right: 0 !important;
-    background: rgba(10, 16, 12, 0.95) !important;
+    background: rgba(10, 16, 12, 0.97) !important;
     backdrop-filter: blur(20px) !important;
     -webkit-backdrop-filter: blur(20px) !important;
     border-top: 1px solid var(--border-color) !important;
-    padding: 8px 12px calc(8px + env(safe-area-inset-bottom, 0px)) 12px !important;
+    padding: 0 4px calc(env(safe-area-inset-bottom, 0px)) 4px !important;
     z-index: 999 !important;
     box-shadow: 0 -8px 24px rgba(0, 0, 0, 0.5) !important;
+    min-height: 64px !important;
+    align-items: center !important;
+    display: grid !important;
+    grid-template-columns: repeat(5, 1fr) !important;
   }
 
+  /* Nav tab buttons — full size, thumb friendly */
   .nav-tab {
-    padding: 6px 0 !important;
-    font-size: 0.68rem !important;
+    padding: 10px 0 !important;
+    font-size: 0.72rem !important;
+    min-height: 56px !important;
+    gap: 5px !important;
+  }
+
+  .nav-tab svg {
+    width: 22px !important;
+    height: 22px !important;
   }
 
   /* SOS Button on Mobile */
@@ -2587,14 +2606,12 @@ input:checked + .slider:before {
   }
 
   .phone-content {
-    padding: 14px 16px calc(115px + env(safe-area-inset-bottom, 24px)) 16px !important;
+    padding: 14px 16px calc(88px + env(safe-area-inset-bottom, 20px)) 16px !important;
     overflow-y: auto !important;
     -webkit-overflow-scrolling: touch !important;
   }
 
-  .phone-navbar {
-    display: flex !important;
-  }
+  /* phone-navbar already set to display:grid above */
 
   .sos-desktop-split {
     display: flex !important;
