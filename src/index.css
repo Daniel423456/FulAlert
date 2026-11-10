@@ -347,8 +347,9 @@ input:focus, select:focus, textarea:focus {
   display: flex;
   flex-direction: column;
   overflow-y: auto;
+  -webkit-overflow-scrolling: touch;
   padding: 16px;
-  padding-bottom: 24px;
+  padding-bottom: calc(115px + env(safe-area-inset-bottom, 24px));
 }
 
 .phone-content::-webkit-scrollbar {
@@ -2339,6 +2340,13 @@ input:checked + .slider:before {
   .mobile-only {
     display: none !important;
   }
+  .phone-content {
+    padding: 24px 28px !important;
+    overflow-y: visible !important;
+  }
+  .bottom-nav-safe-spacer {
+    display: none !important;
+  }
 }
 
 /* 5. Home Page Navbar */
@@ -2576,6 +2584,12 @@ input:checked + .slider:before {
   /* Student Portal on Mobile */
   .student-desktop-tabs {
     display: none !important;
+  }
+
+  .phone-content {
+    padding: 14px 16px calc(115px + env(safe-area-inset-bottom, 24px)) 16px !important;
+    overflow-y: auto !important;
+    -webkit-overflow-scrolling: touch !important;
   }
 
   .phone-navbar {

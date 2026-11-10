@@ -21,7 +21,9 @@ import {
   PhoneForwarded,
   MapPin,
   Compass,
-  Activity
+  Activity,
+  Home,
+  LogOut
 } from 'lucide-react';
 import GpsMap from './GpsMap';
 import WalkWithMe from './WalkWithMe';
@@ -112,7 +114,9 @@ export default function StudentPortal({
   CAMPUS_LOCATIONS,
   bypassFirebase = false,
   userLocation = null,
-  onOpenLocationPrompt
+  onOpenLocationPrompt,
+  onBackToHome,
+  onLogout
 }) {
   const [activeTab, setActiveTab] = useState('sos'); // 'sos', 'walk', 'contacts', 'history', 'profile'
   const [activeCategory, setActiveCategory] = useState('security'); // default
@@ -461,18 +465,88 @@ export default function StudentPortal({
 
         {/* Student Mobile App Brand Top Header */}
         <div className="student-app-topbar silent-hide">
-          <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
             <div className="brand-logo-badge small">
-              <img src="/logo.png" alt="FULALERT" style={{ height: '26px', objectFit: 'contain' }} />
+              <img src="/logo.png" alt="FULALERT" style={{ height: '24px', objectFit: 'contain' }} />
             </div>
             <div>
-              <div style={{ fontSize: '0.88rem', fontWeight: 800, letterSpacing: '0.02em', color: '#fff' }}>FULALERT</div>
-              <div style={{ fontSize: '0.55rem', color: 'var(--brand-orange)', fontWeight: 700, letterSpacing: '0.05em' }}>NOTIFY • INFORM • PROTECT</div>
+              <div style={{ fontSize: '0.85rem', fontWeight: 800, letterSpacing: '0.02em', color: '#fff' }}>FULALERT</div>
+              <div style={{ fontSize: '0.52rem', color: 'var(--brand-orange)', fontWeight: 700, letterSpacing: '0.04em' }}>NOTIFY • INFORM • PROTECT</div>
             </div>
           </div>
-          <span className="status-badge" style={{ padding: '3px 8px', fontSize: '0.65rem', background: 'rgba(16, 185, 129, 0.15)', color: '#10b981', borderColor: 'rgba(16, 185, 129, 0.3)' }}>
-            <span className="status-dot" style={{ backgroundColor: '#10b981' }}></span> Live
-          </span>
+
+          <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+            {/* Quick GPS Status Button */}
+            {onOpenLocationPrompt && (
+              <button
+                type="button"
+                onClick={onOpenLocationPrompt}
+                title={userLocation ? `Location active (${userLocation.latitude}, ${userLocation.longitude}). Tap to refresh.` : "Location inactive. Tap to allow & enable."}
+                style={{
+                  display: 'inline-flex',
+                  alignItems: 'center',
+                  gap: '4px',
+                  fontSize: '0.68rem',
+                  padding: '4px 8px',
+                  background: userLocation ? 'rgba(16, 185, 129, 0.15)' : 'rgba(245, 158, 11, 0.15)',
+                  border: userLocation ? '1px solid rgba(16, 185, 129, 0.4)' : '1px solid rgba(245, 158, 11, 0.4)',
+                  borderRadius: '12px',
+                  color: userLocation ? '#34d399' : '#fbbf24',
+                  fontWeight: 700,
+                  cursor: 'pointer'
+                }}
+              >
+                <Navigation size={10} className={userLocation ? "" : "live-pulse"} />
+                <span>{userLocation ? 'GPS' : 'GPS'}</span>
+              </button>
+            )}
+
+            {/* Exit to Home */}
+            {onBackToHome && (
+              <button
+                type="button"
+                onClick={onBackToHome}
+                style={{
+                  background: 'rgba(255, 255, 255, 0.05)',
+                  border: '1px solid var(--border-color)',
+                  color: '#cbd5e1',
+                  borderRadius: '12px',
+                  padding: '4px 8px',
+                  fontSize: '0.68rem',
+                  fontWeight: 600,
+                  cursor: 'pointer',
+                  display: 'inline-flex',
+                  alignItems: 'center',
+                  gap: '4px'
+                }}
+                title="Exit to Campus Safety Home"
+              >
+                <Home size={12} />
+                <span>Home</span>
+              </button>
+            )}
+
+            {/* Logout button */}
+            {onLogout && (
+              <button
+                type="button"
+                onClick={onLogout}
+                style={{
+                  background: 'rgba(239, 68, 68, 0.12)',
+                  border: '1px solid rgba(239, 68, 68, 0.3)',
+                  color: '#ef4444',
+                  borderRadius: '12px',
+                  padding: '4px 8px',
+                  fontSize: '0.68rem',
+                  fontWeight: 700,
+                  cursor: 'pointer'
+                }}
+                title="Sign out of student safety profile"
+              >
+                Logout
+              </button>
+            )}
+          </div>
         </div>
 
         {/* Desktop Tab Navigation Bar - visible only on desktop */}
@@ -1302,6 +1376,8 @@ export default function StudentPortal({
             </div>
           )}
 
+          {/* Bottom Nav Safe Spacer - guarantees the down part shows 100% completely above bottom buttons */}
+          <div className="bottom-nav-safe-spacer" style={{ height: 'calc(110px + env(safe-area-inset-bottom, 24px))', width: '100%', flexShrink: 0 }} />
         </div>
 
         {/* Phone Bottom Tab Navigator */}

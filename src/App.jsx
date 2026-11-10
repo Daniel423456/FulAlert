@@ -587,8 +587,8 @@ export default function App() {
 
   return (
     <div className="app-container">
-      {/* If viewing admin or student, show top header with Navigation back to landing */}
-      {currentView !== 'landing' && currentView !== 'walk' && (
+      {/* If viewing admin or student while logged out, show header to let user navigate or sign in. If logged in, the portal renders its own dedicated bar */}
+      {currentView !== 'landing' && currentView !== 'walk' && !currentUser && (
         <header className="app-header">
           <div className="logo-section" style={{ cursor: 'pointer' }} onClick={() => navigateTo('landing')}>
             <div className="brand-logo-badge small">
@@ -740,6 +740,8 @@ export default function App() {
               bypassFirebase={bypassFirebase}
               userLocation={userLocation}
               onOpenLocationPrompt={() => setShowLocationPrompt(true)}
+              onBackToHome={() => navigateTo('landing')}
+              onLogout={handleLogout}
             />
           ) : (
             <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', height: '100%', padding: '32px', textAlign: 'center' }}>
