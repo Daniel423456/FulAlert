@@ -834,7 +834,7 @@ export default function App() {
           }
 
           return (
-            <div style={{ flex: 1, padding: '24px', maxWidth: '1600px', width: '100%', margin: '0 auto' }}>
+            <div className="admin-view-wrapper">
               <AdminDashboard 
                 alerts={alerts}
                 setAlerts={setAlerts}

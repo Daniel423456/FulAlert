@@ -303,20 +303,16 @@ ${inAppTrackingUrl}`
   };
 
   return (
-    <div style={{
-      maxWidth: isEmbedded ? '100%' : '600px',
-      margin: isEmbedded ? '0' : '0 auto',
-      background: 'var(--bg-secondary)',
-      color: '#fff',
-      borderRadius: isEmbedded ? '0' : '24px',
-      overflow: 'hidden',
-      border: isEmbedded ? 'none' : '1px solid var(--border-color)',
-      boxShadow: '0 16px 48px rgba(0,0,0,0.6)',
-      display: 'flex',
-      flexDirection: 'column',
-      minHeight: isEmbedded ? '600px' : '720px',
-      position: 'relative'
-    }}>
+    <div 
+      className={`walk-card-container ${isEmbedded ? 'embedded' : ''}`}
+      style={{
+        maxWidth: isEmbedded ? '100%' : undefined,
+        margin: isEmbedded ? '0' : undefined,
+        borderRadius: isEmbedded ? '0' : undefined,
+        border: isEmbedded ? 'none' : undefined,
+        minHeight: isEmbedded ? '600px' : undefined
+      }}
+    >
 
       {/* 1. TOP APP BAR */}
       <div style={{

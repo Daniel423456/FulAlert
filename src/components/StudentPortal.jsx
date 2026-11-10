@@ -475,37 +475,83 @@ export default function StudentPortal({
           </span>
         </div>
 
+        {/* Desktop Tab Navigation Bar - visible only on desktop */}
+        <div className="student-desktop-tabs silent-hide">
+          <button 
+            type="button"
+            className={`desktop-nav-tab ${activeTab === 'sos' ? 'active' : ''}`}
+            onClick={() => setActiveTab('sos')}
+          >
+            <ShieldAlert size={16} />
+            <span>Emergency SOS</span>
+          </button>
+          <button 
+            type="button"
+            className={`desktop-nav-tab ${activeTab === 'walk' ? 'active' : ''}`}
+            onClick={() => setActiveTab('walk')}
+          >
+            <Navigation size={16} />
+            <span>Walk With Me</span>
+          </button>
+          <button 
+            type="button"
+            className={`desktop-nav-tab ${activeTab === 'contacts' ? 'active' : ''}`}
+            onClick={() => setActiveTab('contacts')}
+          >
+            <PhoneCall size={16} />
+            <span>Campus Hotlines</span>
+          </button>
+          <button 
+            type="button"
+            className={`desktop-nav-tab ${activeTab === 'history' ? 'active' : ''}`}
+            onClick={() => setActiveTab('history')}
+          >
+            <History size={16} />
+            <span>Incident History</span>
+          </button>
+          <button 
+            type="button"
+            className={`desktop-nav-tab ${activeTab === 'profile' ? 'active' : ''}`}
+            onClick={() => setActiveTab('profile')}
+          >
+            <User size={16} />
+            <span>Safety Profile</span>
+          </button>
+        </div>
+
         {/* Screen Content Scroll Area */}
         <div className="phone-content">
           
           {/* 1. SOS Tab */}
           {activeTab === 'sos' && (
             <div className="sos-container">
-              {/* Active Student Safety Profile */}
-              <div className="user-profile-summary silent-hide" style={{ width: '100%' }}>
-                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                  <span style={{ fontSize: '0.68rem', color: 'var(--text-muted)', fontWeight: 800, letterSpacing: '0.05em' }}>CAMPUS SAFETY PROFILE</span>
-                  <span style={{ fontSize: '0.62rem', background: 'rgba(16, 185, 129, 0.15)', color: '#10b981', padding: '2px 8px', borderRadius: '12px', fontWeight: 700, border: '1px solid rgba(16, 185, 129, 0.3)' }}>
-                    🟢 Verified
-                  </span>
-                </div>
-                <p style={{ fontSize: '0.9rem', fontWeight: 800, marginTop: '4px', color: '#fff' }}>{currentUser?.fullName || currentUser?.name || 'Student'}</p>
-                <p style={{ fontSize: '0.72rem', color: 'var(--text-secondary)' }}>
-                  Matric: <strong>{currentUser?.matric || 'GUEST'}</strong>
-                </p>
-                {currentUser?.strikes > 0 && (
-                  <p style={{ color: 'var(--accent-sos)', fontSize: '0.7rem', fontWeight: 'bold', marginTop: '4px' }}>
-                    ⚠️ Penalty Warning: {currentUser.strikes} False Alarm Strikes
-                  </p>
-                )}
-              </div>
-
               {!activeAlertId ? (
-                <>
-                  <h3 className="silent-hide" style={{ fontSize: '1.1rem', textAlign: 'center' }}>Need Help? Pick a Category</h3>
-                  
-                  {/* Category Selection Grid */}
-                  <div className="category-pill-grid silent-hide">
+                <div className="sos-desktop-split">
+                  {/* Left Column (Primary SOS Actions) */}
+                  <div className="sos-main-column">
+                    {/* Active Student Safety Profile - Mobile Only */}
+                    <div className="user-profile-summary mobile-only silent-hide" style={{ width: '100%', marginBottom: '10px' }}>
+                      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                        <span style={{ fontSize: '0.68rem', color: 'var(--text-muted)', fontWeight: 800, letterSpacing: '0.05em' }}>CAMPUS SAFETY PROFILE</span>
+                        <span style={{ fontSize: '0.62rem', background: 'rgba(16, 185, 129, 0.15)', color: '#10b981', padding: '2px 8px', borderRadius: '12px', fontWeight: 700, border: '1px solid rgba(16, 185, 129, 0.3)' }}>
+                          🟢 Verified
+                        </span>
+                      </div>
+                      <p style={{ fontSize: '0.9rem', fontWeight: 800, marginTop: '4px', color: '#fff' }}>{currentUser?.fullName || currentUser?.name || 'Student'}</p>
+                      <p style={{ fontSize: '0.72rem', color: 'var(--text-secondary)' }}>
+                        Matric: <strong>{currentUser?.matric || 'GUEST'}</strong>
+                      </p>
+                      {currentUser?.strikes > 0 && (
+                        <p style={{ color: 'var(--accent-sos)', fontSize: '0.7rem', fontWeight: 'bold', marginTop: '4px' }}>
+                          ⚠️ Penalty Warning: {currentUser.strikes} False Alarm Strikes
+                        </p>
+                      )}
+                    </div>
+
+                    <h3 className="silent-hide" style={{ fontSize: '1.1rem', textAlign: 'center', marginBottom: '8px' }}>Need Help? Pick a Category</h3>
+                    
+                    {/* Category Selection Grid */}
+                    <div className="category-pill-grid silent-hide">
                     {categories.map(cat => {
                       const IconComp = cat.icon;
                       return (
@@ -827,9 +873,105 @@ export default function StudentPortal({
                       <span className="slider"></span>
                     </label>
                   </div>
+                </div>
 
-                </>
-              ) : (
+                {/* Right Column (Desktop Companion Sidebar - hotlines, broadcasts, profile) */}
+                <div className="sos-desktop-sidebar silent-hide">
+                  {/* Desktop Safety Profile Card */}
+                  <div className="desktop-side-card">
+                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '8px' }}>
+                      <span style={{ fontSize: '0.7rem', color: 'var(--text-muted)', fontWeight: 800, letterSpacing: '0.05em' }}>
+                        CAMPUS CREDENTIALS
+                      </span>
+                      <span style={{ fontSize: '0.65rem', background: 'rgba(16, 185, 129, 0.15)', color: '#10b981', padding: '2px 8px', borderRadius: '12px', fontWeight: 700, border: '1px solid rgba(16, 185, 129, 0.3)' }}>
+                        🟢 Active Student
+                      </span>
+                    </div>
+                    <h4 style={{ fontSize: '1.05rem', fontWeight: 800, color: '#fff', margin: '0 0 2px' }}>
+                      {currentUser?.fullName || currentUser?.name || 'Student'}
+                    </h4>
+                    <p style={{ fontSize: '0.75rem', color: 'var(--text-secondary)', margin: '0 0 10px' }}>
+                      Matric: <strong style={{ color: '#60a5fa' }}>{currentUser?.matric || 'UG/20/SCI/1021'}</strong>
+                    </p>
+                    <div style={{ display: 'flex', flexDirection: 'column', gap: '6px', fontSize: '0.74rem', color: '#cbd5e1' }}>
+                      <div>📍 Residence: <strong>{currentUser?.residence || 'Hostel Block A'}</strong></div>
+                      <div>🏥 Medical: <strong>{currentUser?.allergies || 'None'}</strong></div>
+                      <div>📞 Next of Kin: <strong>{currentUser?.emergencyContact || 'Campus Security'}</strong></div>
+                    </div>
+                  </div>
+
+                  {/* Quick Direct Hotlines Card */}
+                  <div className="desktop-side-card">
+                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '10px' }}>
+                      <strong style={{ fontSize: '0.82rem', color: '#fff' }}>⚡ Direct Campus Hotlines</strong>
+                      <button 
+                        type="button"
+                        onClick={() => setActiveTab('contacts')} 
+                        style={{ background: 'none', border: 'none', color: '#38bdf8', fontSize: '0.7rem', cursor: 'pointer', fontWeight: 700 }}
+                      >
+                        View All →
+                      </button>
+                    </div>
+                    <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
+                      {EMERGENCY_CONTACTS.slice(0, 4).map(c => {
+                        const CIcon = c.icon;
+                        return (
+                          <a 
+                            key={c.id} 
+                            href={`tel:${c.phone.replace(/[^0-9+]/g, '')}`} 
+                            style={{ 
+                              display: 'flex', 
+                              alignItems: 'center', 
+                              justifyContent: 'space-between', 
+                              padding: '8px 12px', 
+                              background: 'rgba(255, 255, 255, 0.03)', 
+                              border: '1px solid rgba(255, 255, 255, 0.06)', 
+                              borderRadius: '10px', 
+                              textDecoration: 'none',
+                              color: '#fff',
+                              transition: 'all 0.2s'
+                            }}
+                          >
+                            <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                              <CIcon size={15} style={{ color: c.color }} />
+                              <span style={{ fontSize: '0.78rem', fontWeight: 600 }}>{c.shortName}</span>
+                            </div>
+                            <span style={{ fontSize: '0.72rem', color: '#34d399', fontWeight: 700 }}>{c.phone}</span>
+                          </a>
+                        );
+                      })}
+                    </div>
+                  </div>
+
+                  {/* Walk With Me Quick Launcher Card */}
+                  <div 
+                    onClick={() => setActiveTab('walk')}
+                    style={{
+                      background: 'radial-gradient(100% 100% at 50% 0%, rgba(0, 104, 55, 0.25) 0%, rgba(6, 78, 59, 0.1) 100%)',
+                      border: '1.5px solid rgba(16, 185, 129, 0.35)',
+                      borderRadius: '14px',
+                      padding: '14px',
+                      cursor: 'pointer',
+                      display: 'flex',
+                      alignItems: 'center',
+                      justifyContent: 'space-between',
+                      transition: 'all 0.2s'
+                    }}
+                  >
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+                      <div style={{ width: '36px', height: '36px', borderRadius: '10px', background: 'rgba(16, 185, 129, 0.25)', color: '#34d399', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                        <Navigation size={18} />
+                      </div>
+                      <div>
+                        <strong style={{ fontSize: '0.82rem', color: '#fff', display: 'block' }}>Walk With Me Mode</strong>
+                        <span style={{ fontSize: '0.68rem', color: 'var(--text-secondary)' }}>Live GPS tracking for night walks</span>
+                      </div>
+                    </div>
+                    <span style={{ fontSize: '0.75rem', color: '#34d399', fontWeight: 700 }}>Open →</span>
+                  </div>
+                </div>
+              </div>
+            ) : (
                 /* Active SOS Screen */
                 <div className="active-alert-screen">
                   <div className="pulse-circle" style={{ background: selectedCategoryColor?.color }}>
@@ -1114,7 +1256,7 @@ export default function StudentPortal({
                 </p>
               </div>
 
-              <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
+              <div className="contacts-grid">
                 {EMERGENCY_CONTACTS.map(contact => {
                   const IconComp = contact.icon;
                   return (
